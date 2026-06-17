@@ -6,7 +6,7 @@ import logoImg from '@/assets/logo.png'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import {
   LayoutDashboard, FileText, TrendingUp, Briefcase, BarChart2,
-  Activity, Bot, Zap, Download, ArrowUpRight, Menu, LogOut,
+  Activity, Bot, Zap, Download, ArrowUpRight, Menu, LogOut, Users,
   Bell, Settings, Building2, CandlestickChart, UserCircle2, KeyRound,
   SlidersHorizontal, ShieldCheck, CreditCard, Globe, Lock, HelpCircle,
   ChevronRight as ChevronRight2, Clock, HeadphonesIcon, ShieldOff,
@@ -34,6 +34,7 @@ const NAV = [
     items: [
       { label: 'Live Markets',      path: '/dashboard/markets',           icon: Activity,  badge: { label: 'Live',    color: '#16a34a', bg: 'rgba(22,163,74,0.15)' } },
       { label: 'AI Trading Bots',   path: '/dashboard/ai-bots',           icon: Bot,       badge: { label: 'AI',      color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' } },
+      { label: 'Copy Trading',      path: '/dashboard/copy-trading',      icon: Users,     badge: { label: 'New',     color: '#4ade80', bg: 'rgba(74,222,128,0.12)' } },
     ],
   },
   {
@@ -56,6 +57,10 @@ const NAV = [
     ],
   },
 ]
+
+// Build an absolute URL for uploaded images (strip the trailing /api from the API base)
+const MEDIA_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api').replace(/\/api\/?$/, '')
+const mediaUrl = (p?: string) => (p ? (p.startsWith('http') ? p : `${MEDIA_BASE}${p}`) : '')
 
 // ─── Notification type colours ────────────────────────────────────────────────
 const NOTIF_DOT: Record<string, string> = {
@@ -550,15 +555,17 @@ export function DashboardLayout() {
                 onClick={() => { setAccountOpen(o => !o); setNotifOpen(false); setSettingsOpen(false) }}
                 style={{
                   width: 32, height: 32, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #88fc8a 0%, #00ff04 100%)',
+                  background: user?.avatarUrl ? 'transparent' : 'linear-gradient(135deg, #88fc8a 0%, #00ff04 100%)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700, color: '#050505', flexShrink: 0,
                   border: accountOpen ? '2px solid rgba(136,252,138,0.6)' : '2px solid transparent',
                   cursor: 'pointer', transition: 'border-color 0.15s',
-                  outline: 'none',
+                  outline: 'none', overflow: 'hidden', padding: 0,
                 }}
               >
-                E
+                {user?.avatarUrl
+                  ? <img src={mediaUrl(user.avatarUrl)} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : (user?.displayName || user?.firstName || 'U').charAt(0).toUpperCase()}
               </button>
 
               {/* Dropdown */}

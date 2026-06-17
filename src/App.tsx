@@ -38,6 +38,7 @@ import { MyPortfolio } from '@/pages/dashboard/MyPortfolio'
 import { PerformanceHistory } from '@/pages/dashboard/PerformanceHistory'
 import { LiveMarkets } from '@/pages/dashboard/LiveMarkets'
 import { AITradingBots } from '@/pages/dashboard/AITradingBots'
+import { CopyTrading } from '@/pages/dashboard/CopyTrading'
 import { PremiumSignals } from '@/pages/dashboard/PremiumSignals'
 import { DepositFunds } from '@/pages/dashboard/DepositFunds'
 import { WithdrawalFunds } from '@/pages/dashboard/WithdrawalFunds'
@@ -167,6 +168,7 @@ function App() {
         <Route path="performance"  element={<PerformanceHistory />} />
         <Route path="markets"      element={<LiveMarkets />} />
         <Route path="ai-bots"      element={<AITradingBots />} />
+        <Route path="copy-trading" element={<CopyTrading />} />
         <Route path="signals"      element={<PremiumSignals />} />
         <Route path="deposit"      element={<DepositFunds />} />
         <Route path="withdrawal"   element={<WithdrawalFunds />} />

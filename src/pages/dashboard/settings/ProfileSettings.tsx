@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Camera, User, AtSign, FileText, Twitter, Linkedin, Globe, Save, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { api } from '../../../lib/api'
+
+// Build an absolute URL for uploaded images (strip the trailing /api from the API base)
+const MEDIA_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api').replace(/\/api\/?$/, '')
+const mediaUrl = (p?: string) => (p ? (p.startsWith('http') ? p : `${MEDIA_BASE}${p}`) : '')
 
 function SettingsCard({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return (
@@ -80,6 +84,35 @@ export function ProfileSettings() {
     }
   }
 
+  // ── Avatar upload ─────────────────────────────────────────────────────────
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Image is too large. Max size is 2MB.')
+      return
+    }
+    setUploading(true)
+    setError('')
+    try {
+      const data = new FormData()
+      data.append('avatar', file)
+      await api.upload('/user/avatar', data)
+      await refreshUser()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload photo.')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const avatarSrc  = mediaUrl(user?.avatarUrl)
+  const avatarChar = (user?.displayName || user?.firstName || 'U').charAt(0).toUpperCase()
+
   return (
     <div className="p-4 md:p-6 max-w-[760px] mx-auto overflow-x-hidden">
 
@@ -96,30 +129,36 @@ export function ProfileSettings() {
 
       {/* Avatar */}
       <SettingsCard title="Profile Picture" sub="Upload a photo that represents you">
+        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleAvatarChange} style={{ display: 'none' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
-            <div style={{
-              width: 80, height: 80, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #88fc8a 0%, #00ff04 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 28, fontWeight: 800, color: '#050505',
-            }}>E</div>
-            <button style={{
-              position: 'absolute', bottom: 0, right: 0,
-              width: 26, height: 26, borderRadius: '50%',
-              background: 'hsl(260 87% 8%)', border: '2px solid hsl(260 87% 5%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-            }}>
+            {avatarSrc ? (
+              <img src={avatarSrc} alt="avatar" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{
+                width: 80, height: 80, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #88fc8a 0%, #00ff04 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 28, fontWeight: 800, color: '#050505',
+              }}>{avatarChar}</div>
+            )}
+            <button
+              onClick={() => fileRef.current?.click()}
+              style={{
+                position: 'absolute', bottom: 0, right: 0,
+                width: 26, height: 26, borderRadius: '50%',
+                background: 'hsl(260 87% 8%)', border: '2px solid hsl(260 87% 5%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}>
               <Camera size={12} style={{ color: '#86efac' }} />
             </button>
           </div>
           <div>
             <p style={{ fontSize: 13, color: 'hsl(40 6% 85%)', marginBottom: 6 }}>Upload a new avatar</p>
-            <p style={{ fontSize: 11, color: 'hsl(240 5% 48%)', marginBottom: 12 }}>JPG, PNG or GIF. Max size 2MB.</p>
+            <p style={{ fontSize: 11, color: 'hsl(240 5% 48%)', marginBottom: 12 }}>JPG, PNG or WebP. Max size 2MB.</p>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button style={{ fontSize: 12, fontWeight: 600, padding: '7px 16px', borderRadius: 8, background: 'rgba(74,222,128,0.2)', border: '1px solid rgba(74,222,128,0.3)', color: '#86efac', cursor: 'pointer' }}>Upload Photo</button>
-              <button style={{ fontSize: 12, fontWeight: 500, padding: '7px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'hsl(240 5% 55%)', cursor: 'pointer' }}>Remove</button>
+              <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ fontSize: 12, fontWeight: 600, padding: '7px 16px', borderRadius: 8, background: 'rgba(74,222,128,0.2)', border: '1px solid rgba(74,222,128,0.3)', color: '#86efac', cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>{uploading ? 'Uploading…' : 'Upload Photo'}</button>
             </div>
           </div>
         </div>
