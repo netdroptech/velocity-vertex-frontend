@@ -52,20 +52,31 @@ interface PairData {
 }
 
 // ── Binance 24hr ticker fetch ────────────────────────────────────────────
-const BINANCE_URL =
-  `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(SYMBOLS))}`
+// data-api.binance.vision is Binance's public market-data host (fewer geo
+// restrictions than api.binance.com). We fetch each symbol independently with
+// Promise.allSettled so that a single delisted/invalid symbol (e.g. MATIC →
+// POL) can't take down the whole request — the rest still return live prices.
+const BINANCE_HOST = 'https://data-api.binance.vision'
 
-async function fetchLivePrices(): Promise<PairData[]> {
-  const res = await fetch(BINANCE_URL)
+async function fetchOne(symbol: string): Promise<PairData> {
+  const res = await fetch(`${BINANCE_HOST}/api/v3/ticker/24hr?symbol=${symbol}`)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const data = await res.json()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data as any[]).map((t) => ({
+  const t = await res.json()
+  return {
     symbol: t.symbol as string,
     price:  parseFloat(t.lastPrice),
     change: parseFloat(t.priceChangePercent),
     volume: parseFloat(t.quoteVolume),   // quoteVolume = USDT volume
-  }))
+  }
+}
+
+async function fetchLivePrices(): Promise<PairData[]> {
+  const results = await Promise.allSettled(SYMBOLS.map(fetchOne))
+  const ok = results
+    .filter((r): r is PromiseFulfilledResult<PairData> => r.status === 'fulfilled')
+    .map(r => r.value)
+  if (ok.length === 0) throw new Error('All price requests failed')
+  return ok
 }
 
 // ── Formatters ────────────────────────────────────────────────────────────
@@ -90,17 +101,35 @@ function fmtCountdown(s: number) {
 
 // ── Sub-components ────────────────────────────────────────────────────────
 function CoinIcon({ symbol, color }: { symbol: string; color: string }) {
+  const ticker = symbol.replace('USDT', '').toLowerCase()
   const letter = symbol.replace('USDT', '').charAt(0)
+  const [failed, setFailed] = useState(false)
+
+  // Fallback: lettered gradient circle if the logo can't be loaded
+  if (failed) {
+    return (
+      <div style={{
+        width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+        background: `linear-gradient(135deg, ${color}55 0%, ${color}22 100%)`,
+        border: `1.5px solid ${color}44`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 13, fontWeight: 800, color,
+      }}>
+        {letter}
+      </div>
+    )
+  }
+
   return (
-    <div style={{
-      width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-      background: `linear-gradient(135deg, ${color}55 0%, ${color}22 100%)`,
-      border: `1.5px solid ${color}44`,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 13, fontWeight: 800, color,
-    }}>
-      {letter}
-    </div>
+    <img
+      src={`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@1.0.0/128/color/${ticker}.png`}
+      alt={ticker}
+      onError={() => setFailed(true)}
+      style={{
+        width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+        background: 'rgba(255,255,255,0.04)',
+      }}
+    />
   )
 }
 
