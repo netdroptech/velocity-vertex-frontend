@@ -21,6 +21,8 @@ function AdminLoginInner() {
   const [error,     setError]     = useState('')
   const [attempts,  setAttempts]  = useState(0)
   const [shake,     setShake]     = useState(false)
+  const [twoFA,     setTwoFA]     = useState(false)
+  const [code,      setCode]      = useState('')
   const [particles, setParticles] = useState<{ x: number; y: number; size: number; speed: number; opacity: number }[]>([])
 
   useEffect(() => {
@@ -47,14 +49,27 @@ function AdminLoginInner() {
       const res  = await fetch(`${BASE}/auth/admin/login`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ email, password }),
+        body:    JSON.stringify({ email, password, token: code }),
       })
       const data = await res.json()
       if (!data.success) {
-        const next = attempts + 1
-        setAttempts(next)
-        setError(data.message ?? `Invalid credentials. ${Math.max(0, 3 - next)} attempt(s) remaining.`)
+        // Don't penalise attempts for a wrong 2FA code (password was already correct)
+        if (!twoFA) {
+          const next = attempts + 1
+          setAttempts(next)
+          setError(data.message ?? `Invalid credentials. ${Math.max(0, 3 - next)} attempt(s) remaining.`)
+        } else {
+          setError(data.message ?? 'Invalid authentication code.')
+        }
         triggerShake()
+        setLoading(false)
+        return
+      }
+
+      // Password is correct but 2FA is enabled → prompt for the authenticator code
+      if (data.data?.twoFactorRequired) {
+        setTwoFA(true)
+        setError('')
         setLoading(false)
         return
       }
@@ -156,6 +171,26 @@ function AdminLoginInner() {
 
             {!loading ? (
               <form onSubmit={handleLogin}>
+                {twoFA ? (
+                  /* ── 2FA step ── */
+                  <div style={{ marginBottom: 22 }}>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(240 5% 50%)', letterSpacing: '0.07em', marginBottom: 7, textTransform: 'uppercase' }}>Authentication Code</label>
+                    <p style={{ fontSize: 12, color: 'hsl(240 5% 55%)', marginBottom: 12, lineHeight: 1.5 }}>
+                      Enter the 6-digit code from your Google Authenticator app.
+                    </p>
+                    <input
+                      autoFocus
+                      inputMode="numeric"
+                      value={code}
+                      onChange={e => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setError('') }}
+                      placeholder="000000"
+                      style={{ width: '100%', height: 52, borderRadius: 11, fontSize: 22, fontWeight: 800, letterSpacing: 10, textAlign: 'center', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: 'hsl(40 6% 92%)', outline: 'none', boxSizing: 'border-box' }}
+                      onFocus={e => (e.target.style.borderColor = 'rgba(74,222,128,0.5)')}
+                      onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,0.09)')}
+                    />
+                  </div>
+                ) : (
+                <>
                 {/* Email */}
                 <div style={{ marginBottom: 18 }}>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(240 5% 50%)', letterSpacing: '0.07em', marginBottom: 7, textTransform: 'uppercase' }}>Admin Email</label>
@@ -194,13 +229,8 @@ function AdminLoginInner() {
                   </div>
                 </div>
 
-                {/* Demo hint */}
-                <div style={{ padding: '10px 13px', borderRadius: 9, background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.14)', marginBottom: 20 }}>
-                  <p style={{ fontSize: 11, color: 'rgba(134,239,172,0.7)', lineHeight: 1.6 }}>
-                    <span style={{ fontWeight: 700, color: '#86efac' }}>Demo credentials: </span>
-                    admin@apex.com / Admin@1234
-                  </p>
-                </div>
+                </>
+                )}
 
                 <button type="submit" disabled={attempts >= 3} style={{
                   width: '100%', height: 48, borderRadius: 12,
@@ -213,7 +243,7 @@ function AdminLoginInner() {
                   boxShadow: attempts >= 3 ? 'none' : '0 8px 24px rgba(21,128,61,0.4)',
                   transition: 'all 0.2s',
                 }}>
-                  {attempts >= 3 ? 'Account Locked' : <><span>Sign In to Admin</span><ChevronRight size={16} /></>}
+                  {attempts >= 3 ? 'Account Locked' : twoFA ? <><span>Verify Code</span><ChevronRight size={16} /></> : <><span>Sign In to Admin</span><ChevronRight size={16} /></>}
                 </button>
               </form>
             ) : (

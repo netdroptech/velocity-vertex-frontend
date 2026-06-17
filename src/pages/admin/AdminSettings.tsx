@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Lock, Eye, EyeOff, CheckCircle2, AlertTriangle, Loader2, KeyRound, MapPin, Phone } from 'lucide-react'
 import { adminApi } from '@/lib/api'
+import { AdminTwoFactor } from './AdminTwoFactor'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -113,6 +114,11 @@ export function AdminSettings() {
         <p style={{ fontSize: 13, color: 'hsl(240 5% 50%)' }}>
           Manage your admin account and platform configuration.
         </p>
+      </div>
+
+      {/* ── Two-Factor Authentication ── */}
+      <div style={{ maxWidth: 560 }}>
+        <AdminTwoFactor />
       </div>
 
       {/* ── Contact Info Card ── */}
