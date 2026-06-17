@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Camera, User, AtSign, FileText, Twitter, Linkedin, Globe, Save, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../../context/AuthContext'
+import { api } from '../../../lib/api'
 
 function SettingsCard({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return (
@@ -34,30 +36,49 @@ const inputStyle: React.CSSProperties = {
 
 export function ProfileSettings() {
   const navigate = useNavigate()
-  const [saved, setSaved] = useState(false)
+  const { user, refreshUser } = useAuth()
+  const [saved, setSaved]   = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState('')
   const [form, setForm] = useState({
-    displayName: 'John Doe',
-    username:    'johndoe_apex',
-    bio:         'Investor & trader. Building wealth one asset at a time.',
-    twitter:     '@johndoe',
-    linkedin:    'linkedin.com/in/johndoe',
+    displayName: '',
+    username:    '',
+    bio:         '',
+    twitter:     '',
+    linkedin:    '',
     website:     '',
   })
+
+  // Populate the form from the logged-in user once it loads
+  useEffect(() => {
+    if (!user) return
+    setForm({
+      displayName: user.displayName ?? `${user.firstName} ${user.lastName}`.trim(),
+      username:    user.username ?? '',
+      bio:         user.bio ?? '',
+      twitter:     user.twitter ?? '',
+      linkedin:    user.linkedin ?? '',
+      website:     user.website ?? '',
+    })
+  }, [user])
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
-  function handleSave() {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+  async function handleSave() {
+    setSaving(true)
+    setError('')
+    try {
+      await api.put('/user/profile', form)
+      await refreshUser()
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save changes.')
+    } finally {
+      setSaving(false)
+    }
   }
-
-  const THEMES = [
-    { id: 'dark',    label: 'Dark',    color: '#0d0b1e' },
-    { id: 'darker',  label: 'Darker',  color: '#060410' },
-    { id: 'purple',  label: 'Purple',  color: '#1a0d2e' },
-  ]
-  const [theme, setTheme] = useState('dark')
 
   return (
     <div className="p-4 md:p-6 max-w-[760px] mx-auto overflow-x-hidden">
@@ -150,33 +171,12 @@ export function ProfileSettings() {
         ))}
       </SettingsCard>
 
-      {/* Theme */}
-      <SettingsCard title="Dashboard Theme" sub="Choose your preferred colour scheme">
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {THEMES.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTheme(t.id)}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                padding: '14px 20px', borderRadius: 12, cursor: 'pointer',
-                border: theme === t.id ? '2px solid #4ade80' : '2px solid rgba(255,255,255,0.07)',
-                background: theme === t.id ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.02)',
-                transition: 'all 0.15s',
-              }}
-            >
-              <div style={{ width: 48, height: 32, borderRadius: 8, background: t.color, border: '1px solid rgba(255,255,255,0.1)' }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: theme === t.id ? '#86efac' : 'hsl(240 5% 55%)' }}>{t.label}</span>
-            </button>
-          ))}
-        </div>
-      </SettingsCard>
-
       {/* Save */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+        {error && <span style={{ fontSize: 12, color: '#f87171', marginRight: 'auto' }}>{error}</span>}
         <button onClick={() => navigate(-1)} style={{ padding: '10px 22px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'hsl(240 5% 55%)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-        <button onClick={handleSave} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 10, background: saved ? 'rgba(74,222,128,0.15)' : 'linear-gradient(135deg,#16a34a,#15803d)', border: saved ? '1px solid rgba(74,222,128,0.3)' : 'none', color: saved ? '#4ade80' : '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
-          <Save size={14} /> {saved ? 'Saved!' : 'Save Changes'}
+        <button onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 10, background: saved ? 'rgba(74,222,128,0.15)' : 'linear-gradient(135deg,#16a34a,#15803d)', border: saved ? '1px solid rgba(74,222,128,0.3)' : 'none', color: saved ? '#4ade80' : '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, transition: 'all 0.2s' }}>
+          <Save size={14} /> {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Changes'}
         </button>
       </div>
     </div>
