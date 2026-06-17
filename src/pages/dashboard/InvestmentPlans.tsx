@@ -46,11 +46,8 @@ function planVisuals(name: string, badge: string | null) {
   return   { Icon: Shield,         iconColor: '#60a5fa', iconBg: 'rgba(96,165,250,0.12)' }
 }
 
-function planCtaStyle(badge: string | null) {
-  // Elite uses "Contact Us" — keep its distinct amber styling
-  if (badge === 'Elite')
-    return { background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#fcd34d' }
-  // All "Start Investing" buttons match the Growth (Popular) plan's green gradient
+function planCtaStyle(_badge: string | null) {
+  // Every button matches the Growth plan: green gradient with black text
   return { background: 'linear-gradient(135deg, #88fc8a 0%, #00ff04 100%)', border: 'none', color: '#050505', fontWeight: 600, boxShadow: '0 4px 20px rgba(136,252,138,0.2)' }
 }
 
