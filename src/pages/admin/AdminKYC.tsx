@@ -52,6 +52,7 @@ export function AdminKYC() {
   const navigate = useNavigate()
 
   const [records,  setRecords]  = useState<KYCRecord[]>([])
+  const [stats,    setStats]    = useState({ pending: 0, approved: 0, rejected: 0, total: 0 })
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState('')
   const [tab,      setTab]      = useState<'PENDING'|'ALL'>('PENDING')
@@ -75,7 +76,17 @@ export function AdminKYC() {
     }
   }, [tab])
 
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await adminApi.get<{ success: boolean; data: typeof stats }>('/kyc/admin/stats')
+      setStats(res.data)
+    } catch {
+      // leave stats as-is on failure
+    }
+  }, [])
+
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadStats() }, [loadStats])
 
   const selectedRecord = selected ? records.find(r => r.id === selected) : null
 
@@ -87,6 +98,7 @@ export function AdminKYC() {
       setActionMsg({ type: 'success', text: 'KYC approved successfully.' })
       setSelected(null)
       load()
+      loadStats()
     } catch (err: any) {
       setActionMsg({ type: 'error', text: err.message ?? 'Approval failed.' })
     } finally {
@@ -104,6 +116,7 @@ export function AdminKYC() {
       setRejectNote('')
       setSelected(null)
       load()
+      loadStats()
     } catch (err: any) {
       setActionMsg({ type: 'error', text: err.message ?? 'Rejection failed.' })
     } finally {
@@ -111,9 +124,7 @@ export function AdminKYC() {
     }
   }
 
-  const pending  = records.filter(r => r.status === 'PENDING').length
-  const approved = records.filter(r => r.status === 'APPROVED').length
-  const rejected = records.filter(r => r.status === 'REJECTED').length
+  const { pending, approved, rejected } = stats
   const displayList = tab === 'PENDING' ? records.filter(r => r.status === 'PENDING') : records
 
   return (
@@ -144,7 +155,7 @@ export function AdminKYC() {
           { label: 'Pending Review', value: String(pending),             c: '#f59e0b', bg: 'rgba(245,158,11,0.1)',   icon: Clock },
           { label: 'Approved',       value: String(approved),            c: '#4ade80', bg: 'rgba(74,222,128,0.1)',   icon: CheckCircle2 },
           { label: 'Rejected',       value: String(rejected),            c: '#f87171', bg: 'rgba(248,113,113,0.1)',  icon: X },
-          { label: 'Total Records',  value: String(records.length),      c: '#4ade80', bg: 'rgba(74,222,128,0.1)',  icon: ShieldCheck },
+          { label: 'Total Records',  value: String(stats.total),         c: '#4ade80', bg: 'rgba(74,222,128,0.1)',  icon: ShieldCheck },
         ].map(s => (
           <div key={s.label} style={{ background: 'hsl(260 60% 5%)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 13, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 38, height: 38, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -160,7 +171,7 @@ export function AdminKYC() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 2, marginBottom: 16, background: 'hsl(260 60% 5%)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
-        {[{ k: 'PENDING', label: `Pending (${pending})` }, { k: 'ALL', label: `All (${records.length})` }].map(t => (
+        {[{ k: 'PENDING', label: `Pending (${pending})` }, { k: 'ALL', label: `All (${stats.total})` }].map(t => (
           <button key={t.k} onClick={() => { setTab(t.k as any); setSelected(null) }} style={{ padding: '7px 16px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none', background: tab === t.k ? 'rgba(74,222,128,0.2)' : 'transparent', color: tab === t.k ? '#86efac' : 'hsl(240 5% 52%)', transition: 'all 0.13s' }}>
             {t.label}
           </button>
