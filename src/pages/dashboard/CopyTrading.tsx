@@ -52,7 +52,7 @@ export function CopyTrading() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get<{ success: boolean; data: CopyTrader[] }>('/traders')
+        const res = await api.get<{ success: boolean; data: CopyTrader[] }>('/user/traders')
         setTraders(res.data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load traders.')
