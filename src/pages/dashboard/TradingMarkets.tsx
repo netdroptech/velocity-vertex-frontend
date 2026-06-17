@@ -122,7 +122,7 @@ function CoinIcon({ symbol, color }: { symbol: string; color: string }) {
 
   return (
     <img
-      src={`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@1.0.0/128/color/${ticker}.png`}
+      src={`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@0.18.1/128/color/${ticker}.png`}
       alt={ticker}
       onError={() => setFailed(true)}
       style={{
