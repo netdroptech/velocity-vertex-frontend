@@ -72,7 +72,16 @@ export function InvestmentPlans() {
     setLoading(true)
     try {
       const res = await api.get<{ success: boolean; data: Plan[] }>('/user/plans')
-      setPlans(res.data)
+      // Desired display order: Starter → Growth → Professional → Elite
+      const rank = (p: Plan) => {
+        const n = `${p.name} ${p.badge ?? ''}`.toLowerCase()
+        if (n.includes('starter')) return 0
+        if (n.includes('growth') || n.includes('popular')) return 1
+        if (n.includes('professional') || n.includes('pro')) return 2
+        if (n.includes('elite')) return 3
+        return p.sortOrder ?? 99
+      }
+      setPlans([...res.data].sort((a, b) => rank(a) - rank(b)))
     } catch {
       // silently keep empty — show "no plans" state
     } finally {
