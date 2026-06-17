@@ -66,8 +66,8 @@ export function AdminKYC() {
     setLoading(true)
     setError('')
     try {
-      const params = tab === 'PENDING' ? '?status=PENDING' : ''
-      const res = await adminApi.get<{ success: boolean; data: KYCRecord[] }>(`/kyc/admin/list${params}`)
+      const params = tab === 'PENDING' ? '?status=PENDING' : '?status=ALL'
+      const res = await adminApi.get<{ success: boolean; data: KYCRecord[] }>(`/kyc/admin/list${params}&limit=200`)
       setRecords(res.data)
     } catch (err: any) {
       setError(err.message ?? 'Failed to load KYC records.')
