@@ -23,13 +23,24 @@ interface CopyTrader {
 }
 
 interface CopyTrade {
-  id:          string
-  traderName:  string
-  traderImage?: string
-  amount:      number
-  status:      string
-  startedAt:   string
-  stoppedAt?:  string
+  id:            string
+  traderName:    string
+  traderImage?:  string
+  amount:        number
+  monthlyReturn: number
+  status:        string
+  startedAt:     string
+  stoppedAt?:    string
+  realizedPnl?:  number | null
+  pnl:           number
+  currentValue:  number
+}
+
+// Mirror of the backend P/L formula so active trades tick live between refetches
+function livePnl(t: CopyTrade, now: number): number {
+  if (t.status !== 'active') return t.realizedPnl ?? t.pnl ?? 0
+  const days = Math.max(0, (now - new Date(t.startedAt).getTime()) / 86_400_000)
+  return Math.max(t.amount * (t.monthlyReturn / 100) * (days / 30), -t.amount)
 }
 
 const MEDIA_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api').replace(/\/api\/?$/, '')
@@ -71,6 +82,13 @@ export function CopyTrading() {
   const [amount,      setAmount]      = useState('')
   const [submitting,  setSubmitting]  = useState(false)
   const [modalError,  setModalError]  = useState('')
+
+  // Live clock so active trades' P/L ticks upward between refetches
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   const loadTraders = useCallback(async () => {
     try {
@@ -235,35 +253,65 @@ export function CopyTrading() {
       )}
 
       {/* History */}
-      {!loading && trades.length > 0 && (
+      {!loading && trades.length > 0 && (() => {
+        const rows = trades.map(tr => ({ tr, pnl: livePnl(tr, now) }))
+        const totalAllocated = rows.filter(r => r.tr.status === 'active').reduce((s, r) => s + r.tr.amount, 0)
+        const totalPnl       = rows.filter(r => r.tr.status === 'active').reduce((s, r) => s + r.pnl, 0)
+        const totalValue     = totalAllocated + totalPnl
+        return (
         <div style={{ marginTop: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <History size={16} style={{ color: '#4ade80' }} />
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'hsl(40 10% 94%)' }}>Copy Trade History</h2>
           </div>
-          <div style={{ background: 'hsl(260 60% 5%)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
-            {trades.map((tr, i) => (
-              <div key={tr.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: i < trades.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                {tr.traderImage ? (
-                  <img src={mediaUrl(tr.traderImage)} alt={tr.traderName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                ) : (
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#4ade80' }}>{initials(tr.traderName)}</div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: 'hsl(40 6% 88%)' }}>{tr.traderName}</p>
-                  <p style={{ fontSize: 11, color: 'hsl(240 5% 48%)' }}>{new Date(tr.startedAt).toLocaleDateString()} · {money(tr.amount)}</p>
-                </div>
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 999, color: tr.status === 'active' ? '#4ade80' : 'hsl(240 5% 55%)', background: tr.status === 'active' ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.05)' }}>
-                  {tr.status === 'active' ? 'Active' : 'Stopped'}
-                </span>
-                {tr.status === 'active' && (
-                  <button onClick={() => stopTrade(tr.id)} style={{ fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 7, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171', cursor: 'pointer', flexShrink: 0 }}>Stop</button>
-                )}
+
+          {/* Totals (active allocations) */}
+          <div className="grid grid-cols-3 gap-3" style={{ marginBottom: 16 }}>
+            {[
+              { label: 'Active Allocated', value: money(totalAllocated), color: 'hsl(40 6% 90%)' },
+              { label: 'Live P/L',         value: `${totalPnl >= 0 ? '+' : ''}${money(totalPnl)}`, color: totalPnl >= 0 ? '#4ade80' : '#f87171' },
+              { label: 'Current Value',    value: money(totalValue), color: '#4ade80' },
+            ].map(s => (
+              <div key={s.label} style={{ background: 'hsl(260 60% 5%)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 14px' }}>
+                <p style={{ fontSize: 10.5, color: 'hsl(240 5% 50%)', marginBottom: 3 }}>{s.label}</p>
+                <p style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</p>
               </div>
             ))}
           </div>
+
+          <div style={{ background: 'hsl(260 60% 5%)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+            {rows.map(({ tr, pnl }, i) => {
+              const value   = tr.amount + pnl
+              const pct     = tr.amount > 0 ? (pnl / tr.amount) * 100 : 0
+              const up      = pnl >= 0
+              return (
+                <div key={tr.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                  {tr.traderImage ? (
+                    <img src={mediaUrl(tr.traderImage)} alt={tr.traderName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#4ade80' }}>{initials(tr.traderName)}</div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'hsl(40 6% 88%)' }}>{tr.traderName}</p>
+                    <p style={{ fontSize: 11, color: 'hsl(240 5% 48%)' }}>{new Date(tr.startedAt).toLocaleDateString()} · allocated {money(tr.amount)}</p>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: up ? '#4ade80' : '#f87171' }}>{up ? '+' : ''}{money(pnl)}</p>
+                    <p style={{ fontSize: 10.5, color: 'hsl(240 5% 50%)' }}>{tr.status === 'active' ? `Value ${money(value)}` : 'Closed'} · {up ? '+' : ''}{pct.toFixed(2)}%</p>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 999, color: tr.status === 'active' ? '#4ade80' : 'hsl(240 5% 55%)', background: tr.status === 'active' ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.05)', flexShrink: 0 }}>
+                    {tr.status === 'active' ? 'Active' : 'Stopped'}
+                  </span>
+                  {tr.status === 'active' && (
+                    <button onClick={() => stopTrade(tr.id)} style={{ fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 7, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171', cursor: 'pointer', flexShrink: 0 }}>Stop</button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
-      )}
+        )
+      })()}
 
       {/* Footnote */}
       {!loading && !error && filtered.length > 0 && (

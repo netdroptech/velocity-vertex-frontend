@@ -46,6 +46,43 @@ function avatarColor(email: string) {
   return cols[h % cols.length]
 }
 
+// ─── Document card (handles missing / broken uploads gracefully) ─────────────
+
+function DocCard({ label, url }: { label: string; url?: string }) {
+  const [broken, setBroken] = useState(false)
+  const fullUrl = url ? `${BASE_URL}${url}` : ''
+  const unavailable = !url || broken
+
+  function handleView() {
+    if (unavailable) {
+      window.alert(`No "${label}" was uploaded for this user. The document is not available to view.`)
+      return
+    }
+    window.open(fullUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  return (
+    <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div style={{ background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'hsl(240 5% 55%)' }}>{label}</p>
+      </div>
+      {unavailable ? (
+        <button onClick={handleView} style={{ width: '100%', height: 90, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, background: 'rgba(255,255,255,0.02)', border: 'none', cursor: 'pointer' }}>
+          <AlertTriangle size={15} style={{ color: '#f59e0b' }} />
+          <span style={{ fontSize: 11, color: 'hsl(240 5% 45%)' }}>Not uploaded</span>
+        </button>
+      ) : (
+        <button onClick={handleView} style={{ width: '100%', padding: 0, background: 'none', border: 'none', cursor: 'pointer', display: 'block' }}>
+          <img src={fullUrl} alt={label} onError={() => setBroken(true)} style={{ width: '100%', height: 90, objectFit: 'cover', display: 'block' }} />
+          <div style={{ padding: '6px 12px', display: 'flex', justifyContent: 'flex-end' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#4ade80' }}><Eye size={11} /> View</span>
+          </div>
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AdminKYC() {
@@ -262,23 +299,7 @@ export function AdminKYC() {
                     ...(selectedRecord.backUrl ? [{ label: 'Back of ID', url: selectedRecord.backUrl }] : []),
                     { label: 'Selfie', url: selectedRecord.selfieUrl },
                   ].map(doc => (
-                    <div key={doc.label} style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div style={{ background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: 'hsl(240 5% 55%)' }}>{doc.label}</p>
-                      </div>
-                      {doc.url ? (
-                        <a href={`${BASE_URL}${doc.url}`} target="_blank" rel="noopener noreferrer">
-                          <img src={`${BASE_URL}${doc.url}`} alt={doc.label} style={{ width: '100%', height: 90, objectFit: 'cover', display: 'block' }} />
-                          <div style={{ padding: '6px 12px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#4ade80' }}><Eye size={11} /> View</span>
-                          </div>
-                        </a>
-                      ) : (
-                        <div style={{ height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.02)' }}>
-                          <p style={{ fontSize: 11, color: 'hsl(240 5% 40%)' }}>Not uploaded</p>
-                        </div>
-                      )}
-                    </div>
+                    <DocCard key={doc.label} label={doc.label} url={doc.url} />
                   ))}
                 </div>
 
