@@ -40,7 +40,7 @@ export function ProfileUpdate() {
   const navigate = useNavigate()
   const [saved, setSaved] = useState(false)
   const [form, setForm] = useState({
-    firstName: 'Edwin', lastName: '', email: 'netdroptech@gmail.com',
+    firstName: 'John', lastName: 'Doe', email: 'Johndoe@gmail.com',
     phone: '', dob: '', nationality: 'Nigeria', occupation: 'Investor',
     address: '', city: '', state: '', postalCode: '', country: 'Nigeria',
   })

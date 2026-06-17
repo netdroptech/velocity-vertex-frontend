@@ -180,7 +180,7 @@ export function KYCVerification() {
             <p style={{ fontSize: 14, fontWeight: 700, color: 'hsl(40 10% 94%)', marginBottom: 4 }}>Review & Submit</p>
             <p style={{ fontSize: 12, color: 'hsl(240 5% 52%)', marginBottom: 20 }}>Please review your submitted information before sending.</p>
             {[
-              { label: 'Full Name',     value: 'Edwin —',      icon: User },
+              { label: 'Full Name',     value: 'John Doe',     icon: User },
               { label: 'Document Type',value: 'Passport',      icon: FileText },
               { label: 'Selfie',        value: '1 photo uploaded', icon: Camera },
             ].map(row => (
