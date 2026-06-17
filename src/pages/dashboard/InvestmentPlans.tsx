@@ -47,13 +47,11 @@ function planVisuals(name: string, badge: string | null) {
 }
 
 function planCtaStyle(badge: string | null) {
-  if (badge === 'Popular')
-    return { background: 'linear-gradient(135deg, #88fc8a 0%, #00ff04 100%)', border: 'none', color: '#050505', fontWeight: 600, boxShadow: '0 4px 20px rgba(136,252,138,0.2)' }
+  // Elite uses "Contact Us" — keep its distinct amber styling
   if (badge === 'Elite')
     return { background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#fcd34d' }
-  if (badge === 'Pro')
-    return { background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.3)', color: '#86efac' }
-  return { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'hsl(40 6% 88%)' }
+  // All "Start Investing" buttons match the Growth (Popular) plan's green gradient
+  return { background: 'linear-gradient(135deg, #88fc8a 0%, #00ff04 100%)', border: 'none', color: '#050505', fontWeight: 600, boxShadow: '0 4px 20px rgba(136,252,138,0.2)' }
 }
 
 const BADGE_STYLES: Record<string, { bg: string; color: string }> = {
