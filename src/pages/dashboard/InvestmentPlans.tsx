@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Check, Shield, Zap, Crown, Loader2, TrendingUp as TrendingUpIcon } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
@@ -65,6 +66,7 @@ function Card({ children, style = {} }: { children: React.ReactNode; style?: Rea
 
 export function InvestmentPlans() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [plans,   setPlans]   = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -237,6 +239,7 @@ export function InvestmentPlans() {
                   </ul>
 
                   <button
+                    onClick={() => navigate('/dashboard/deposit')}
                     style={{ width: '100%', padding: '0.65rem', borderRadius: '0.625rem', fontSize: 13, cursor: 'pointer', transition: 'opacity 0.15s', ...ctaStyle }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}
