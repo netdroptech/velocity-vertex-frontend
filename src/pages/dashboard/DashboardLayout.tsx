@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext'
 import logoImg from '@/assets/logo.png'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import {
-  LayoutDashboard, FileText, TrendingUp, Briefcase, BarChart2,
+  LayoutDashboard, FileText, TrendingUp, BarChart2,
   Activity, Bot, Zap, Download, ArrowUpRight, Menu, LogOut, Users,
   Bell, Settings, Building2, CandlestickChart, UserCircle2, KeyRound,
   SlidersHorizontal, ShieldCheck, CreditCard, Globe, Lock, HelpCircle,
@@ -25,7 +25,6 @@ const NAV = [
     section: 'PORTFOLIO & INVESTMENTS',
     items: [
       { label: 'Investment Plans',  path: '/dashboard/plans',             icon: TrendingUp },
-      { label: 'My Portfolio',      path: '/dashboard/portfolio',         icon: Briefcase },
       { label: 'Performance History', path: '/dashboard/performance',     icon: BarChart2 },
     ],
   },

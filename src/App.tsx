@@ -34,7 +34,6 @@ import { DashboardLayout } from '@/pages/dashboard/DashboardLayout'
 import { DashboardHome } from '@/pages/dashboard/DashboardHome'
 import { AccountStatement } from '@/pages/dashboard/AccountStatement'
 import { InvestmentPlans } from '@/pages/dashboard/InvestmentPlans'
-import { MyPortfolio } from '@/pages/dashboard/MyPortfolio'
 import { PerformanceHistory } from '@/pages/dashboard/PerformanceHistory'
 import { LiveMarkets } from '@/pages/dashboard/LiveMarkets'
 import { AITradingBots } from '@/pages/dashboard/AITradingBots'
@@ -164,7 +163,6 @@ function App() {
         <Route path="trade"        element={<TradingMarkets />} />
         <Route path="trade/:symbol" element={<TradeDetail />} />
         <Route path="plans"        element={<InvestmentPlans />} />
-        <Route path="portfolio"    element={<MyPortfolio />} />
         <Route path="performance"  element={<PerformanceHistory />} />
         <Route path="markets"      element={<LiveMarkets />} />
         <Route path="ai-bots"      element={<AITradingBots />} />
