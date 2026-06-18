@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Copy, CheckCircle, AlertCircle, ArrowDownLeft, Clock, Shield, Loader2, Upload, X, ImageIcon } from 'lucide-react'
+import { Copy, CheckCircle, AlertCircle, ArrowDownLeft, Clock, Shield, Loader2, Upload, X, ImageIcon, ExternalLink, ShoppingCart } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
 
@@ -413,6 +413,41 @@ export function DepositFunds() {
                   </div>
                 </div>
               ))}
+            </Card>
+
+            {/* Need Cryptocurrency — external providers */}
+            <Card style={{ padding: '1.25rem' }}>
+              <div className="flex items-center gap-2 mb-1">
+                <ShoppingCart size={14} style={{ color: '#f59e0b' }} />
+                <p style={{ fontSize: 13, fontWeight: 700, color: 'hsl(40 6% 90%)' }}>Need Cryptocurrency?</p>
+              </div>
+              <p style={{ fontSize: 11.5, color: 'hsl(240 5% 55%)', lineHeight: 1.5, marginBottom: '0.875rem' }}>
+                Purchase crypto from any of these trusted providers:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { name: 'Binance',     url: 'https://www.binance.com' },
+                  { name: 'Kraken',      url: 'https://www.kraken.com' },
+                  { name: 'Bitcoin.com', url: 'https://www.bitcoin.com' },
+                  { name: 'Crypto.com',  url: 'https://crypto.com' },
+                ].map(p => (
+                  <a
+                    key={p.name}
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0.625rem 0.875rem', borderRadius: '0.625rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(74,222,128,0.06)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(74,222,128,0.25)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)' }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'hsl(40 6% 88%)' }}>{p.name}</span>
+                    <ExternalLink size={13} style={{ color: 'hsl(240 5% 55%)', flexShrink: 0 }} />
+                  </a>
+                ))}
+              </div>
+              <p style={{ fontSize: 10.5, color: 'hsl(240 5% 42%)', lineHeight: 1.5, marginTop: '0.75rem' }}>
+                External links — you will be redirected to the provider's website.
+              </p>
             </Card>
 
             {/* Selected method */}
