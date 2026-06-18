@@ -65,10 +65,44 @@ function Card({ children, style = {} }: { children: React.ReactNode; style?: Rea
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function InvestmentPlans() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [plans,   setPlans]   = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
+  const balance = user?.balance ?? 0
+
+  // Invest modal
+  const [investPlan, setInvestPlan] = useState<Plan | null>(null)
+  const [investAmt,  setInvestAmt]  = useState('')
+  const [investing,  setInvesting]  = useState(false)
+  const [investErr,  setInvestErr]  = useState('')
+  const [investDone, setInvestDone] = useState(false)
+
+  function openInvest(plan: Plan) {
+    setInvestPlan(plan)
+    setInvestAmt(String(plan.minDeposit))
+    setInvestErr('')
+    setInvestDone(false)
+  }
+
+  const investNum = Number(investAmt) || 0
+  const insufficient = investPlan != null && investNum > 0 && investNum > balance
+
+  async function submitInvest() {
+    if (!investPlan) return
+    if (investNum < investPlan.minDeposit) { setInvestErr(`Minimum is ${fmt(investPlan.minDeposit)}.`); return }
+    if (investPlan.maxDeposit != null && investNum > investPlan.maxDeposit) { setInvestErr(`Maximum is ${fmt(investPlan.maxDeposit)}.`); return }
+    setInvesting(true); setInvestErr('')
+    try {
+      await api.post('/user/invest', { planId: investPlan.id, amount: investNum })
+      await refreshUser()
+      setInvestDone(true)
+    } catch (err) {
+      setInvestErr(err instanceof Error ? err.message : 'Could not start investment.')
+    } finally {
+      setInvesting(false)
+    }
+  }
 
   const fetchPlans = useCallback(async () => {
     setLoading(true)
@@ -239,18 +273,64 @@ export function InvestmentPlans() {
                   </ul>
 
                   <button
-                    onClick={() => navigate('/dashboard/deposit')}
+                    onClick={() => openInvest(plan)}
                     style={{ width: '100%', padding: '0.65rem', borderRadius: '0.625rem', fontSize: 13, cursor: 'pointer', transition: 'opacity 0.15s', ...ctaStyle }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                   >
-                    {plan.badge === 'Elite' ? 'Contact Us' : 'Start Investing'}
+                    Start Investing
                   </button>
                 </div>
               )
             })}
           </div>
         </>
+      )}
+
+      {/* ── Invest modal ── */}
+      {investPlan && (
+        <div onClick={() => !investing && setInvestPlan(null)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(5,2,12,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(420px,100%)', background: 'hsl(260 60% 6%)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: 22, boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
+            {investDone ? (
+              <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                  <Check size={26} style={{ color: '#4ade80' }} />
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 800, color: 'hsl(40 10% 95%)', marginBottom: 6 }}>Investment Started</p>
+                <p style={{ fontSize: 13, color: 'hsl(240 5% 60%)', marginBottom: 18 }}>{fmt(investNum)} was deducted from your balance and invested in the {investPlan.name} plan.</p>
+                <button onClick={() => setInvestPlan(null)} style={{ width: '100%', padding: '11px', borderRadius: 10, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Done</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: 'hsl(40 10% 95%)' }}>Invest in {investPlan.name}</p>
+                  <button onClick={() => setInvestPlan(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(240 5% 55%)', fontSize: 18 }}>✕</button>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'hsl(240 5% 55%)', marginBottom: 14 }}>
+                  <span>Balance: <span style={{ color: '#4ade80', fontWeight: 700 }}>{fmt(balance)}</span></span>
+                  <span>Min {fmt(investPlan.minDeposit)}{investPlan.maxDeposit != null ? ` · Max ${fmt(investPlan.maxDeposit)}` : ''}</span>
+                </div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(240 5% 50%)', letterSpacing: '0.05em', marginBottom: 7, textTransform: 'uppercase' }}>Amount ($)</label>
+                <input type="number" inputMode="decimal" value={investAmt} onChange={e => { setInvestAmt(e.target.value); setInvestErr('') }}
+                  style={{ width: '100%', height: 48, padding: '0 14px', borderRadius: 10, fontSize: 18, fontWeight: 700, background: 'rgba(255,255,255,0.04)', border: `1px solid ${insufficient ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'}`, color: 'hsl(40 6% 92%)', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }} />
+                {investErr && <p style={{ fontSize: 12, color: '#f87171', marginBottom: 12 }}>{investErr}</p>}
+                {insufficient ? (
+                  <>
+                    <div style={{ padding: '10px 13px', borderRadius: 9, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', marginBottom: 14, fontSize: 12, color: '#f59e0b', lineHeight: 1.5 }}>
+                      Insufficient balance. Top up to invest this amount.
+                    </div>
+                    <button onClick={() => navigate('/dashboard/deposit')} style={{ width: '100%', padding: '12px', borderRadius: 10, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Go to Deposit</button>
+                  </>
+                ) : (
+                  <button onClick={submitInvest} disabled={investing || investNum <= 0} style={{ width: '100%', padding: '12px', borderRadius: 10, background: investNum > 0 ? 'linear-gradient(135deg,#16a34a,#15803d)' : 'rgba(255,255,255,0.06)', border: 'none', color: investNum > 0 ? '#fff' : 'hsl(240 5% 40%)', fontSize: 14, fontWeight: 700, cursor: investing || investNum <= 0 ? 'default' : 'pointer', opacity: investing ? 0.7 : 1 }}>
+                    {investing ? 'Processing…' : `Invest ${fmt(investNum)}`}
+                  </button>
+                )}
+                <p style={{ fontSize: 11, color: 'hsl(240 5% 45%)', textAlign: 'center', marginTop: 10, lineHeight: 1.5 }}>This amount is deducted from your deposited balance.</p>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )

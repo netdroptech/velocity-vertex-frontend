@@ -1,7 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TrendingUp, TrendingDown, Zap, Clock, Target, Shield, Bell, Lock } from 'lucide-react'
+import { TrendingUp, TrendingDown, Zap, Clock, Target, Shield, Bell, Lock, CheckCircle2, X } from 'lucide-react'
 import { usePlatformName } from '@/context/PlatformNameContext'
+import { api } from '@/lib/api'
+import { useAuth } from '@/context/AuthContext'
+
+const money = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 const SIGNALS = [
   {
@@ -77,9 +81,42 @@ function ConfidenceBar({ pct, color }: { pct: number; color: string }) {
 
 export function PremiumSignals() {
   const { platformName } = usePlatformName()
+  const { user, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState('All')
   const [expanded, setExpanded] = useState<number | null>(null)
+
+  // Signals access (paid from balance)
+  const [price, setPrice]         = useState(0)
+  const [unlocked, setUnlocked]   = useState(false)
+  const [unlockedUntil, setUntil] = useState<string | null>(null)
+  const [showUnlock, setShowUnlock] = useState(false)
+  const [unlocking, setUnlocking]   = useState(false)
+  const [unlockErr, setUnlockErr]   = useState('')
+  const balance = user?.balance ?? 0
+  const insufficient = price > 0 && balance < price
+
+  const loadStatus = useCallback(async () => {
+    try {
+      const res = await api.get<{ success: boolean; data: { price: number; unlocked: boolean; unlockedUntil: string | null } }>('/user/signals/status')
+      setPrice(res.data.price); setUnlocked(res.data.unlocked); setUntil(res.data.unlockedUntil)
+    } catch { /* ignore */ }
+  }, [])
+  useEffect(() => { loadStatus() }, [loadStatus])
+
+  async function doUnlock() {
+    setUnlocking(true); setUnlockErr('')
+    try {
+      await api.post('/user/signals/unlock', {})
+      await refreshUser()
+      await loadStatus()
+      setShowUnlock(false)
+    } catch (err) {
+      setUnlockErr(err instanceof Error ? err.message : 'Could not unlock signals.')
+    } finally {
+      setUnlocking(false)
+    }
+  }
 
   const filtered = SIGNALS.filter(s => tab === 'All' || s.status === tab.toLowerCase())
 
@@ -102,21 +139,66 @@ export function PremiumSignals() {
         </button>
       </div>
 
-      {/* Upgrade banner */}
-      <div style={{ borderRadius: '0.875rem', padding: '1.125rem 1.5rem', marginBottom: '1.5rem', background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.04) 100%)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div className="flex items-center gap-3">
-          <div style={{ width: 38, height: 38, borderRadius: '0.6rem', background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Zap size={18} style={{ color: '#fcd34d' }} />
+      {/* Access banner */}
+      {unlocked ? (
+        <div style={{ borderRadius: '0.875rem', padding: '1.125rem 1.5rem', marginBottom: '1.5rem', background: 'linear-gradient(135deg, rgba(74,222,128,0.12) 0%, rgba(74,222,128,0.04) 100%)', border: '1px solid rgba(74,222,128,0.25)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 38, height: 38, borderRadius: '0.6rem', background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <CheckCircle2 size={18} style={{ color: '#4ade80' }} />
           </div>
           <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'hsl(40 6% 92%)', marginBottom: 2 }}>Unlock unlimited signals with a Premium or Elite plan</p>
-            <p style={{ fontSize: 12, color: 'hsl(240 5% 50%)' }}>You're viewing 6 of 24 signals available today. Upgrade to see all signals in real time.</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#4ade80', marginBottom: 2 }}>Premium Signals unlocked</p>
+            <p style={{ fontSize: 12, color: 'hsl(240 5% 55%)' }}>Full access to all signals{unlockedUntil ? ` · until ${new Date(unlockedUntil).toLocaleDateString()}` : ''}.</p>
           </div>
         </div>
-        <button onClick={() => navigate('/dashboard/deposit')} style={{ padding: '0.5rem 1.25rem', borderRadius: '0.6rem', background: 'linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%)', color: '#1a0a00', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
-          Upgrade Now
-        </button>
-      </div>
+      ) : (
+        <div style={{ borderRadius: '0.875rem', padding: '1.125rem 1.5rem', marginBottom: '1.5rem', background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.04) 100%)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div className="flex items-center gap-3">
+            <div style={{ width: 38, height: 38, borderRadius: '0.6rem', background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Zap size={18} style={{ color: '#fcd34d' }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'hsl(40 6% 92%)', marginBottom: 2 }}>Unlock unlimited premium signals</p>
+              <p style={{ fontSize: 12, color: 'hsl(240 5% 50%)' }}>Pay {price ? money(price) : '—'} from your balance to see all signals for 30 days.</p>
+            </div>
+          </div>
+          <button onClick={() => { setUnlockErr(''); setShowUnlock(true) }} style={{ padding: '0.5rem 1.25rem', borderRadius: '0.6rem', background: 'linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%)', color: '#1a0a00', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
+            Unlock Now
+          </button>
+        </div>
+      )}
+
+      {/* Unlock modal */}
+      {showUnlock && (
+        <div onClick={() => !unlocking && setShowUnlock(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(5,2,12,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(400px,100%)', background: 'hsl(260 60% 6%)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <p style={{ fontSize: 16, fontWeight: 800, color: 'hsl(40 10% 95%)' }}>Unlock Premium Signals</p>
+              <button onClick={() => setShowUnlock(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(240 5% 55%)' }}><X size={18} /></button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 16 }}>
+              <span style={{ color: 'hsl(240 5% 55%)' }}>Price (30 days)</span>
+              <span style={{ color: 'hsl(40 6% 90%)', fontWeight: 700 }}>{money(price)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 18 }}>
+              <span style={{ color: 'hsl(240 5% 55%)' }}>Your balance</span>
+              <span style={{ color: '#4ade80', fontWeight: 700 }}>{money(balance)}</span>
+            </div>
+            {unlockErr && <p style={{ fontSize: 12, color: '#f87171', marginBottom: 12 }}>{unlockErr}</p>}
+            {insufficient ? (
+              <>
+                <div style={{ padding: '10px 13px', borderRadius: 9, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', marginBottom: 14, fontSize: 12, color: '#f59e0b', lineHeight: 1.5 }}>
+                  Insufficient balance. Top up to unlock signals.
+                </div>
+                <button onClick={() => navigate('/dashboard/deposit')} style={{ width: '100%', padding: '12px', borderRadius: 10, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Go to Deposit</button>
+              </>
+            ) : (
+              <button onClick={doUnlock} disabled={unlocking} style={{ width: '100%', padding: '12px', borderRadius: 10, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: unlocking ? 'default' : 'pointer', opacity: unlocking ? 0.7 : 1 }}>
+                {unlocking ? 'Processing…' : `Pay ${money(price)} from balance`}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
