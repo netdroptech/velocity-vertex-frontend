@@ -859,9 +859,6 @@ export function DashboardHome() {
                         </span>
                         <span style={{ fontSize: 11, color: 'hsl(240 5% 40%)' }}>· {timeAgo(tx.createdAt)}</span>
                       </div>
-                      {tx.adminNote && (
-                        <p style={{ fontSize: 11, color: 'hsl(240 5% 50%)', marginTop: 2 }}>{tx.adminNote}</p>
-                      )}
                     </div>
                   </div>
 
