@@ -24,6 +24,7 @@ interface CopyTrader {
 
 interface CopyTrade {
   id:            string
+  traderId:      string
   traderName:    string
   traderImage?:  string
   amount:        number
@@ -145,6 +146,9 @@ export function CopyTrading() {
     } catch { /* ignore */ }
   }
 
+  // Trader IDs the user is actively copying → shows "Copied" on those cards
+  const copiedIds = new Set(trades.filter(tr => tr.status === 'active').map(tr => tr.traderId))
+
   const filtered = traders.filter(t =>
     `${t.name} ${t.username} ${t.strategy} ${t.tags.join(' ')}`.toLowerCase().includes(query.toLowerCase())
   )
@@ -240,12 +244,22 @@ export function CopyTrading() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => openCopy(t)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', padding: '10px', borderRadius: 10, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-                >
-                  <TrendingUp size={14} /> Copy Trader
-                </button>
+                {copiedIds.has(t.id) ? (
+                  <button
+                    onClick={() => openCopy(t)}
+                    title="You're copying this trader — click to add another allocation"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', padding: '10px', borderRadius: 10, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    <BadgeCheck size={15} /> Copied
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => openCopy(t)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', padding: '10px', borderRadius: 10, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    <TrendingUp size={14} /> Copy Trader
+                  </button>
+                )}
               </div>
             )
           })}
