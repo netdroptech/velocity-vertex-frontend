@@ -134,6 +134,7 @@ export function AdminUserDetail() {
   const [modalNote,  setModalNote]  = useState('')
   const [modalStatus,setModalStatus]= useState('ACTIVE')
   const [balanceOp,  setBalanceOp]  = useState<'add'|'subtract'>('add')
+  const [lossSource, setLossSource] = useState<'balance'|'profit'>('balance')
   const [acting,     setActing]     = useState(false)
   const [actMsg,     setActMsg]     = useState('')
 
@@ -219,7 +220,7 @@ export function AdminUserDetail() {
       if (modal === 'deposit')  await adminApi.post(`/admin/users/${id}/deposit`,  { amount: Number(modalAmt), note: modalNote })
       if (modal === 'withdraw') await adminApi.post(`/admin/users/${id}/withdraw`, { amount: Number(modalAmt), note: modalNote })
       if (modal === 'balance')  await adminApi.post(`/admin/users/${id}/balance`,  { operation: balanceOp, amount: Number(modalAmt), note: modalNote })
-      if (modal === 'loss')     await adminApi.post(`/admin/users/${id}/loss`,     { amount: Number(modalAmt), note: modalNote })
+      if (modal === 'loss')     await adminApi.post(`/admin/users/${id}/loss`,     { amount: Number(modalAmt), note: modalNote, source: lossSource })
       if (modal === 'status')   await adminApi.post(`/admin/users/${id}/status`,   { status: modalStatus })
       setModal(null); setModalAmt(''); setModalNote(''); setBalanceOp('add')
       load()
@@ -322,6 +323,27 @@ export function AdminUserDetail() {
               <Field label="Amount (USD)">
                 <input style={inp} type="number" min="0" step="any" value={modalAmt} onChange={e => setModalAmt(e.target.value)} placeholder="0.00" />
               </Field>
+              {modal === 'loss' && (
+                <Field label="Deduct from">
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {([['balance', 'Balance'], ['profit', 'Total Profit']] as const).map(([val, lbl]) => (
+                      <button
+                        key={val}
+                        onClick={() => setLossSource(val)}
+                        style={{
+                          flex: 1, padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
+                          fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
+                          background: lossSource === val ? 'rgba(251,113,133,0.15)' : 'rgba(255,255,255,0.04)',
+                          border: lossSource === val ? '1px solid rgba(251,113,133,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                          color: lossSource === val ? '#fb7185' : 'hsl(240 5% 60%)',
+                        }}
+                      >
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              )}
               <Field label="Note (optional)">
                 <input style={inp} value={modalNote} onChange={e => setModalNote(e.target.value)} placeholder="Reason…" />
               </Field>

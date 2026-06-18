@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Wallet, TrendingUp, Download, ArrowUpRight, Gift,
+  Wallet, TrendingUp, TrendingDown, Download, ArrowUpRight, Gift,
   Shield, X, Link as LinkIcon, AlertCircle, RefreshCw,
   ChevronDown, CheckCircle2, Clock, XCircle, Loader2,
   WalletCards, Zap, Crown, Sparkles, ChevronRight,
@@ -16,6 +16,7 @@ interface UserStats {
   totalDeposits:    number
   totalWithdrawals: number
   totalProfit:      number
+  totalLoss:        number
   totalBonus:       number
   kycStatus:        string
 }
@@ -218,6 +219,7 @@ export function DashboardHome() {
   const deposits = stats?.totalDeposits    ?? 0
   const withdrawals = stats?.totalWithdrawals ?? 0
   const profit   = stats?.totalProfit      ?? 0
+  const loss     = stats?.totalLoss        ?? 0
   const bonus    = stats?.totalBonus       ?? 0
   const kycStatus = stats?.kycStatus ?? user?.kycStatus ?? 'NOT_SUBMITTED'
   const firstName = user?.firstName ?? ''
@@ -375,6 +377,8 @@ export function DashboardHome() {
 
         {/* Total Profit */}
         <StatCard label="Total Profit" value={fmt(profit)} sub="All time" icon={TrendingUp} loading={statsLoading} />
+        {/* Total Loss */}
+        <StatCard label="Total Loss" value={fmt(loss)} sub="All time" icon={TrendingDown} loading={statsLoading} />
         {/* Total Deposit */}
         <StatCard label="Total Deposit" value={fmt(deposits)} sub="All time" icon={Download} loading={statsLoading} />
         {/* Total Withdrawal */}
