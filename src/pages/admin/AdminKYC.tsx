@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, CheckCircle2, X, Eye, Clock, AlertTriangle, ChevronRight, RefreshCw } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 
-const BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:4000'
+const BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') ?? 'http://localhost:4000'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,7 +50,7 @@ function avatarColor(email: string) {
 
 function DocCard({ label, url }: { label: string; url?: string }) {
   const [broken, setBroken] = useState(false)
-  const fullUrl = url ? `${BASE_URL}${url}` : ''
+  const fullUrl = !url ? '' : /^https?:\/\//i.test(url) ? url : `${BASE_URL}${url}`
   const unavailable = !url || broken
 
   function handleView() {
