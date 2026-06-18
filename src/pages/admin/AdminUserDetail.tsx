@@ -129,7 +129,7 @@ export function AdminUserDetail() {
   const [deleting,    setDeleting]    = useState(false)
 
   // Quick action modals
-  const [modal,      setModal]      = useState<'deposit'|'withdraw'|'balance'|'loss'|'status'|null>(null)
+  const [modal,      setModal]      = useState<'deposit'|'withdraw'|'balance'|'loss'|'profit'|'status'|null>(null)
   const [modalAmt,   setModalAmt]   = useState('')
   const [modalNote,  setModalNote]  = useState('')
   const [modalStatus,setModalStatus]= useState('ACTIVE')
@@ -221,6 +221,7 @@ export function AdminUserDetail() {
       if (modal === 'withdraw') await adminApi.post(`/admin/users/${id}/withdraw`, { amount: Number(modalAmt), note: modalNote })
       if (modal === 'balance')  await adminApi.post(`/admin/users/${id}/balance`,  { operation: balanceOp, amount: Number(modalAmt), note: modalNote })
       if (modal === 'loss')     await adminApi.post(`/admin/users/${id}/loss`,     { amount: Number(modalAmt), note: modalNote, source: lossSource })
+      if (modal === 'profit')   await adminApi.post(`/admin/users/${id}/profit`,   { amount: Number(modalAmt), note: modalNote })
       if (modal === 'status')   await adminApi.post(`/admin/users/${id}/status`,   { status: modalStatus })
       setModal(null); setModalAmt(''); setModalNote(''); setBalanceOp('add')
       load()
@@ -317,8 +318,8 @@ export function AdminUserDetail() {
 
       {/* Quick-action modals */}
       {modal && (
-        <Modal title={modal === 'deposit' ? 'Manual Deposit' : modal === 'withdraw' ? 'Manual Withdrawal' : modal === 'balance' ? 'Adjust Balance' : modal === 'loss' ? 'Record Loss' : 'Change Status'} onClose={() => { setModal(null); setActMsg(''); setBalanceOp('add') }}>
-          {(modal === 'deposit' || modal === 'withdraw' || modal === 'loss') && (
+        <Modal title={modal === 'deposit' ? 'Manual Deposit' : modal === 'withdraw' ? 'Manual Withdrawal' : modal === 'balance' ? 'Adjust Balance' : modal === 'loss' ? 'Record Loss' : modal === 'profit' ? 'Add Profit' : 'Change Status'} onClose={() => { setModal(null); setActMsg(''); setBalanceOp('add') }}>
+          {(modal === 'deposit' || modal === 'withdraw' || modal === 'loss' || modal === 'profit') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Field label="Amount (USD)">
                 <input style={inp} type="number" min="0" step="any" value={modalAmt} onChange={e => setModalAmt(e.target.value)} placeholder="0.00" />
@@ -541,6 +542,7 @@ export function AdminUserDetail() {
             { label: '+ Deposit',      icon: DollarSign,  action: 'deposit'  as const, col: '#4ade80', bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.25)'  },
             { label: '− Withdraw',     icon: DollarSign,  action: 'withdraw' as const, col: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.25)' },
             { label: 'Set Balance',    icon: DollarSign,  action: 'balance'  as const, col: '#60a5fa', bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.25)'  },
+            { label: '+ Profit',       icon: DollarSign,  action: 'profit'   as const, col: '#4ade80', bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.25)'  },
             { label: '− Loss',         icon: DollarSign,  action: 'loss'     as const, col: '#fb7185', bg: 'rgba(251,113,133,0.12)', border: 'rgba(251,113,133,0.25)' },
             { label: 'Change Status',  icon: ShieldCheck, action: 'status'   as const, col: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.25)'  },
           ].map(a => (
