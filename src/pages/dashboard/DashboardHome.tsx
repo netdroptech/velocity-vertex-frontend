@@ -19,6 +19,7 @@ interface UserStats {
   totalLoss:        number
   totalBonus:       number
   kycStatus:        string
+  status?:          string
 }
 
 interface Transaction {
@@ -222,6 +223,7 @@ export function DashboardHome() {
   const loss     = stats?.totalLoss        ?? 0
   const bonus    = stats?.totalBonus       ?? 0
   const kycStatus = stats?.kycStatus ?? user?.kycStatus ?? 'NOT_SUBMITTED'
+  const paused    = (stats?.status ?? user?.status) === 'PAUSED'
   const firstName = user?.firstName ?? ''
   const lastName  = user?.lastName  ?? ''
   const fullName  = [firstName, lastName].filter(Boolean).join(' ') || 'there'
@@ -235,6 +237,19 @@ export function DashboardHome() {
           .dash-stats-grid > *[style*="gridRow"] { grid-row: auto !important; }
         }
       `}</style>
+
+      {/* ── Trading paused banner ── */}
+      {paused && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 18px', borderRadius: 14, marginBottom: 20, background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.3)' }}>
+          <AlertCircle size={18} style={{ color: '#38bdf8', flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#7dd3fc', marginBottom: 2 }}>Trading is paused on your account</p>
+            <p style={{ fontSize: 12.5, color: 'hsl(240 5% 60%)', lineHeight: 1.6 }}>
+              You can still view your dashboard, deposit and withdraw, but opening new investments or copy trades is temporarily disabled. Please contact support if you have questions.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Page header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
