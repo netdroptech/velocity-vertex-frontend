@@ -157,12 +157,12 @@ export function PremiumSignals() {
               <Zap size={18} style={{ color: '#fcd34d' }} />
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'hsl(40 6% 92%)', marginBottom: 2 }}>Unlock unlimited premium signals</p>
-              <p style={{ fontSize: 12, color: 'hsl(240 5% 50%)' }}>Pay {price ? money(price) : '—'} from your balance to see all signals for 30 days.</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'hsl(40 6% 92%)', marginBottom: 2 }}>Buy premium signals</p>
+              <p style={{ fontSize: 12, color: 'hsl(240 5% 50%)' }}>Buy for {price ? money(price) : '—'} from your balance to see all signals for 30 days.</p>
             </div>
           </div>
           <button onClick={() => { setUnlockErr(''); setShowUnlock(true) }} style={{ padding: '0.5rem 1.25rem', borderRadius: '0.6rem', background: 'linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%)', color: '#1a0a00', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
-            Unlock Now
+            Buy Signal
           </button>
         </div>
       )}
@@ -172,7 +172,7 @@ export function PremiumSignals() {
         <div onClick={() => !unlocking && setShowUnlock(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(5,2,12,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ width: 'min(400px,100%)', background: 'hsl(260 60% 6%)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <p style={{ fontSize: 16, fontWeight: 800, color: 'hsl(40 10% 95%)' }}>Unlock Premium Signals</p>
+              <p style={{ fontSize: 16, fontWeight: 800, color: 'hsl(40 10% 95%)' }}>Buy Premium Signals</p>
               <button onClick={() => setShowUnlock(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(240 5% 55%)' }}><X size={18} /></button>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 16 }}>
@@ -187,13 +187,13 @@ export function PremiumSignals() {
             {insufficient ? (
               <>
                 <div style={{ padding: '10px 13px', borderRadius: 9, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', marginBottom: 14, fontSize: 12, color: '#f59e0b', lineHeight: 1.5 }}>
-                  Insufficient balance. Top up to unlock signals.
+                  Insufficient balance. Top up to buy signals.
                 </div>
                 <button onClick={() => navigate('/dashboard/deposit')} style={{ width: '100%', padding: '12px', borderRadius: 10, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Go to Deposit</button>
               </>
             ) : (
               <button onClick={doUnlock} disabled={unlocking} style={{ width: '100%', padding: '12px', borderRadius: 10, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: unlocking ? 'default' : 'pointer', opacity: unlocking ? 0.7 : 1 }}>
-                {unlocking ? 'Processing…' : `Pay ${money(price)} from balance`}
+                {unlocking ? 'Processing…' : `Buy Signal · ${money(price)}`}
               </button>
             )}
           </div>

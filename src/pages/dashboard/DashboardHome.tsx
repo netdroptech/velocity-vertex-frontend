@@ -374,6 +374,7 @@ export function DashboardHome() {
               Deposit
             </button>
             <button
+              onClick={() => navigate('/dashboard/withdrawal')}
               style={{
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 gap: '0.375rem', padding: '0.6rem', borderRadius: '0.625rem',
