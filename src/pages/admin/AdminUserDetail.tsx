@@ -48,6 +48,7 @@ interface Tx {
 const STATUS_STYLES: Record<string, { c: string; bg: string; border: string; label: string; dot: string }> = {
   ACTIVE:    { c: '#4ade80', bg: 'rgba(74,222,128,0.1)',   border: 'rgba(74,222,128,0.3)',   label: 'Active',    dot: '#4ade80' },
   PENDING:   { c: '#f59e0b', bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.3)',   label: 'Pending',   dot: '#f59e0b' },
+  PAUSED:    { c: '#38bdf8', bg: 'rgba(56,189,248,0.1)',   border: 'rgba(56,189,248,0.3)',   label: 'Pause Trade', dot: '#38bdf8' },
   SUSPENDED: { c: '#fb923c', bg: 'rgba(251,146,60,0.1)',   border: 'rgba(251,146,60,0.3)',   label: 'Suspended', dot: '#fb923c' },
   BANNED:    { c: '#f87171', bg: 'rgba(248,113,113,0.1)',  border: 'rgba(248,113,113,0.3)',  label: 'Banned',    dot: '#f87171' },
 }
@@ -410,7 +411,7 @@ export function AdminUserDetail() {
           {modal === 'status' && (
             <Field label="New Status">
               <select style={sel} value={modalStatus} onChange={e => setModalStatus(e.target.value)}>
-                {['ACTIVE','PENDING','SUSPENDED','BANNED'].map(s => <option key={s} value={s}>{s}</option>)}
+                {['ACTIVE','PENDING','PAUSED','SUSPENDED','BANNED'].map(s => <option key={s} value={s}>{STATUS_STYLES[s]?.label ?? s}</option>)}
               </select>
             </Field>
           )}
