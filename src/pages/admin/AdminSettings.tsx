@@ -25,15 +25,35 @@ export function AdminSettings() {
   const [contactSuccess, setContactSuccess] = useState('')
   const [contactError,   setContactError]   = useState('')
 
+  // ── Withdrawal method availability ──
+  const [cryptoWd, setCryptoWd] = useState(true)
+  const [bankWd,   setBankWd]   = useState(true)
+  const [wdSaving, setWdSaving] = useState(false)
+
   // Load existing settings on mount
   useEffect(() => {
     adminApi.get<{ success: boolean; data: Record<string, string> }>('/admin/settings')
       .then(res => {
         setAddress(res.data.platform_address ?? '')
         setPhone(res.data.platform_phone   ?? '')
+        setCryptoWd(res.data.withdrawal_crypto_enabled !== 'false')
+        setBankWd(res.data.withdrawal_bank_enabled !== 'false')
       })
       .catch(() => {/* silently ignore */})
   }, [])
+
+  async function toggleWithdrawal(which: 'crypto' | 'bank', value: boolean) {
+    const key = which === 'crypto' ? 'withdrawal_crypto_enabled' : 'withdrawal_bank_enabled'
+    if (which === 'crypto') setCryptoWd(value); else setBankWd(value)   // optimistic
+    setWdSaving(true)
+    try {
+      await adminApi.patch(`/admin/settings/${key}`, { value: value ? 'true' : 'false' })
+    } catch {
+      if (which === 'crypto') setCryptoWd(!value); else setBankWd(!value)  // revert
+    } finally {
+      setWdSaving(false)
+    }
+  }
 
   async function handleContactSave(e: React.FormEvent) {
     e.preventDefault()
@@ -119,6 +139,33 @@ export function AdminSettings() {
       {/* ── Two-Factor Authentication ── */}
       <div style={{ maxWidth: 560 }}>
         <AdminTwoFactor />
+      </div>
+
+      {/* ── Withdrawal Methods ── */}
+      <div style={{ background: 'hsl(260 60% 5%)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden', maxWidth: 560, marginBottom: 28 }}>
+        <div style={{ padding: '16px 22px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: 'hsl(40 10% 94%)' }}>Withdrawal Methods</p>
+          <p style={{ fontSize: 12, color: 'hsl(240 5% 52%)', marginTop: 2 }}>Enable or disable the methods users can withdraw with{wdSaving ? ' · saving…' : ''}</p>
+        </div>
+        {([
+          { which: 'crypto' as const, label: 'Cryptocurrency', sub: 'Crypto wallet withdrawals', on: cryptoWd },
+          { which: 'bank'   as const, label: 'Bank Transfer',  sub: 'Wire / bank account withdrawals', on: bankWd },
+        ]).map((m, i) => (
+          <div key={m.which} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', borderBottom: i === 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'hsl(40 6% 88%)' }}>{m.label}</p>
+              <p style={{ fontSize: 11.5, color: 'hsl(240 5% 50%)', marginTop: 1 }}>{m.sub}</p>
+            </div>
+            <button
+              onClick={() => toggleWithdrawal(m.which, !m.on)}
+              disabled={wdSaving}
+              aria-pressed={m.on}
+              style={{ width: 46, height: 26, borderRadius: 999, border: 'none', cursor: wdSaving ? 'default' : 'pointer', position: 'relative', background: m.on ? '#16a34a' : 'rgba(255,255,255,0.12)', transition: 'background 0.15s', flexShrink: 0 }}
+            >
+              <span style={{ position: 'absolute', top: 3, left: m.on ? 23 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.15s' }} />
+            </button>
+          </div>
+        ))}
       </div>
 
       {/* ── Contact Info Card ── */}
