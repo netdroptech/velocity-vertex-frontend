@@ -20,6 +20,8 @@ interface UserStats {
   totalBonus:       number
   kycStatus:        string
   status?:          string
+  activePlanName?:  string | null
+  activePlanRoi?:   number | null
 }
 
 interface Transaction {
@@ -662,10 +664,11 @@ export function DashboardHome() {
       {/* ── Active Plan Card ── */}
       <div className="mt-4">
         {(() => {
-          const plan = user?.plan ?? 'BASIC'
+          const activePlanName = stats?.activePlanName ?? null
+          const activePlanRoi  = stats?.activePlanRoi ?? null
 
-          if (plan === 'BASIC') {
-            // No custom plan selected
+          if (!activePlanName) {
+            // No plan invested yet
             return (
               <Card style={{ padding: '1.25rem 1.5rem', background: 'hsl(260 40% 7%)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -714,61 +717,30 @@ export function DashboardHome() {
             )
           }
 
-          // SILVER or GOLD plan
-          const isSilver = plan === 'SILVER'
-          const isGold   = plan === 'GOLD'
-
-          const planConfig = isSilver ? {
-            label:     'Silver Plan',
-            Icon:      Zap,
-            iconColor: '#60a5fa',
-            iconBg:    'rgba(96,165,250,0.15)',
-            badgeBg:   'rgba(96,165,250,0.12)',
-            badgeBorder: 'rgba(96,165,250,0.3)',
-            badgeColor: '#93c5fd',
-            cardBg:    'hsl(230 40% 7%)',
-            cardBorder: 'rgba(96,165,250,0.2)',
-            description: 'Your Silver plan is active. Enjoy enhanced daily returns and priority support.',
-            badge:     'ACTIVE',
-          } : {
-            label:     'Gold Plan',
-            Icon:      Crown,
-            iconColor: '#f59e0b',
-            iconBg:    'rgba(245,158,11,0.15)',
-            badgeBg:   'rgba(245,158,11,0.12)',
-            badgeBorder: 'rgba(245,158,11,0.35)',
-            badgeColor: '#fcd34d',
-            cardBg:    'hsl(40 30% 5%)',
-            cardBorder: 'rgba(245,158,11,0.25)',
-            description: 'Your Gold plan is active. You have access to our highest returns and premium features.',
-            badge:     'ACTIVE',
-          }
-
-          const { label, Icon, iconColor, iconBg, badgeBg, badgeBorder, badgeColor, cardBg, cardBorder, description } = planConfig
-
+          // Active invested plan
           return (
-            <Card style={{ padding: '1.25rem 1.5rem', background: cardBg, border: `1px solid ${cardBorder}` }}>
+            <Card style={{ padding: '1.25rem 1.5rem', background: 'hsl(150 30% 6%)', border: '1px solid rgba(74,222,128,0.25)' }}>
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-4">
                   <div style={{
                     width: 44, height: 44, borderRadius: '0.75rem', flexShrink: 0,
-                    background: iconBg,
+                    background: 'rgba(74,222,128,0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Icon size={20} style={{ color: iconColor }} />
+                    <Zap size={20} style={{ color: '#4ade80' }} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <p style={{ fontSize: 14, fontWeight: 600, color: 'hsl(40 6% 92%)' }}>{label}</p>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: 'hsl(40 6% 92%)' }}>{activePlanName} Plan</p>
                       <span style={{
                         fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
                         padding: '2px 8px', borderRadius: 999,
-                        background: badgeBg, border: `1px solid ${badgeBorder}`,
-                        color: badgeColor,
+                        background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)',
+                        color: '#86efac',
                       }}>ACTIVE</span>
                     </div>
                     <p style={{ fontSize: 12, color: 'hsl(240 5% 55%)', maxWidth: 480 }}>
-                      {description}
+                      Your {activePlanName} plan is active{activePlanRoi != null ? ` — ${activePlanRoi}% returns` : ''}. Daily returns are being applied to your account.
                     </p>
                   </div>
                 </div>
