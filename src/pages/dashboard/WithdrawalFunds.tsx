@@ -45,6 +45,16 @@ const METHODS = [
     fee: 'Network fee only',
     minAmount: '$50',
   },
+  {
+    id: 'bank',
+    label: 'Bank Transfer',
+    sub: '1–3 business days',
+    icon: '🏦',
+    iconBg: 'rgba(96,165,250,0.15)',
+    processingTime: '1–3 business days',
+    fee: 'No fees',
+    minAmount: '$50',
+  },
 ]
 
 const CRYPTO_COINS = ['Bitcoin (BTC)', 'Ethereum (ETH)', 'USDT (TRC-20)', 'USDT (ERC-20)', 'BNB (BEP-20)', 'Solana (SOL)']
@@ -62,6 +72,11 @@ export function WithdrawalFunds() {
   const [coinOpen, setCoinOpen] = useState(false)
   const [amount, setAmount]     = useState('')
   const [address, setAddress]   = useState('')
+  // Bank transfer fields
+  const [bankName, setBankName]           = useState('')
+  const [accountNumber, setAccountNumber] = useState('')
+  const [routing, setRouting]             = useState('')
+  const [accountHolder, setAccountHolder] = useState('')
   const [step, setStep]         = useState<'form' | 'confirm' | 'code' | 'success'>('form')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -88,9 +103,11 @@ export function WithdrawalFunds() {
 
   // Admin-controlled method availability
   const [cryptoEnabled,  setCryptoEnabled]  = useState(true)
+  const [bankEnabled,    setBankEnabled]    = useState(true)
 
   const enabledMethods = METHODS.filter(m =>
-    (m.id === 'crypto' && cryptoEnabled)
+    (m.id === 'crypto' && cryptoEnabled) ||
+    (m.id === 'bank'   && bankEnabled)
   )
 
   const selected  = METHODS.find(m => m.id === method)!
@@ -112,9 +129,10 @@ export function WithdrawalFunds() {
 
   // ── Fetch admin-controlled method settings ────────────────────────────────
   useEffect(() => {
-    api.get<{ success: boolean; data: { cryptoEnabled: boolean } }>('/user/withdrawal-settings')
+    api.get<{ success: boolean; data: { cryptoEnabled: boolean; bankEnabled: boolean } }>('/user/withdrawal-settings')
       .then(res => {
         setCryptoEnabled(res.data.cryptoEnabled)
+        setBankEnabled(res.data.bankEnabled)
       })
       .catch(() => { /* fail open */ })
   }, [])
@@ -134,6 +152,10 @@ export function WithdrawalFunds() {
     }
     if (method === 'crypto' && address.trim().length < 10) {
       setFormError('Please enter a valid destination wallet address.')
+      return
+    }
+    if (method === 'bank' && (!bankName.trim() || !accountNumber.trim() || !accountHolder.trim())) {
+      setFormError('Please enter your bank name, account number, and account holder name.')
       return
     }
     setStep('confirm')
@@ -157,11 +179,12 @@ export function WithdrawalFunds() {
     setSubmitError('')
     try {
       await api.post('/user/withdrawal/submit', {
-        amount:        numAmount,
-        method:        'crypto',
+        amount: numAmount,
+        method: method === 'bank' ? 'wire' : 'crypto',
         code,
-        coin,
-        address,
+        ...(method === 'bank'
+          ? { bankName, accountNumber, routing, accountHolder }
+          : { coin, address }),
       })
       // Await the refresh so data is ready when user returns to form view
       await fetchWithdrawals()
@@ -378,7 +401,13 @@ export function WithdrawalFunds() {
               { label: 'Fee',         value: selected.fee },
               { label: 'You receive', value: `$${numAmount.toFixed(2)}` },
               { label: 'Processing',  value: selected.processingTime },
-              { label: 'Address', value: address.slice(0, 20) + '...' },
+              ...(method === 'bank'
+                ? [
+                    { label: 'Bank',    value: bankName },
+                    { label: 'Account', value: accountNumber },
+                    { label: 'Holder',  value: accountHolder },
+                  ]
+                : [{ label: 'Address', value: address.slice(0, 20) + '...' }]),
             ].map(r => (
               <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.625rem 0.875rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.5rem' }}>
                 <span style={{ fontSize: 12, color: 'hsl(240 5% 55%)' }}>{r.label}</span>
@@ -452,6 +481,7 @@ export function WithdrawalFunds() {
                 ))}
               </div>
 
+              {method === 'crypto' && (<>
               {/* Crypto: address field + coin selector */}
               <p style={{ fontSize: 11, color: 'hsl(240 5% 55%)', marginBottom: 6 }}>Select Coin</p>
                   <div style={{ position: 'relative', marginBottom: '1rem' }}>
@@ -476,10 +506,35 @@ export function WithdrawalFunds() {
                     onChange={e => { setAddress(e.target.value); setFormError('') }}
                     style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.625rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 88%)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: '0.875rem', fontFamily: 'monospace' }}
                   />
+              </>)}
+
+              {method === 'bank' && (<>
+                  <p style={{ fontSize: 11, color: 'hsl(240 5% 55%)', marginBottom: 6 }}>Account Holder Name</p>
+                  <input type="text" placeholder="Full name on the account" value={accountHolder} onChange={e => { setAccountHolder(e.target.value); setFormError('') }}
+                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.625rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 88%)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: '0.875rem' }} />
+
+                  <p style={{ fontSize: 11, color: 'hsl(240 5% 55%)', marginBottom: 6 }}>Bank Name</p>
+                  <input type="text" placeholder="e.g. Chase Bank" value={bankName} onChange={e => { setBankName(e.target.value); setFormError('') }}
+                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.625rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 88%)', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: '0.875rem' }} />
+
+                  <div className="grid grid-cols-2 gap-2" style={{ marginBottom: '0.875rem' }}>
+                    <div>
+                      <p style={{ fontSize: 11, color: 'hsl(240 5% 55%)', marginBottom: 6 }}>Account Number</p>
+                      <input type="text" inputMode="numeric" placeholder="Account number" value={accountNumber} onChange={e => { setAccountNumber(e.target.value); setFormError('') }}
+                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.625rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 88%)', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 11, color: 'hsl(240 5% 55%)', marginBottom: 6 }}>Routing / SWIFT <span style={{ color: 'hsl(240 5% 40%)' }}>(optional)</span></p>
+                      <input type="text" placeholder="Routing / SWIFT" value={routing} onChange={e => { setRouting(e.target.value); setFormError('') }}
+                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.625rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 88%)', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                    </div>
+                  </div>
+              </>)}
 
               {(() => {
-                const hardDisabled = !cryptoEnabled
-                const label = !cryptoEnabled ? 'Method Unavailable' : 'Review Withdrawal'
+                const methodEnabled = method === 'bank' ? bankEnabled : cryptoEnabled
+                const hardDisabled = !methodEnabled
+                const label = !methodEnabled ? 'Method Unavailable' : 'Review Withdrawal'
                 return (
                   <>
                     {formError && (
