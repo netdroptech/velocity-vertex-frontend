@@ -31,7 +31,7 @@ const NAV = [
   {
     section: 'TRADING & MARKETS',
     items: [
-      { label: 'Live Markets',      path: '/dashboard/markets',           icon: Activity,  badge: { label: 'Live',    color: '#16a34a', bg: 'rgba(22,163,74,0.15)' } },
+      { label: 'Stocks',            path: '/dashboard/markets',           icon: Activity,  badge: { label: 'Live',    color: '#16a34a', bg: 'rgba(22,163,74,0.15)' } },
       { label: 'AI Trading Bots',   path: '/dashboard/ai-bots',           icon: Bot,       badge: { label: 'AI',      color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' } },
       { label: 'Copy Trading',      path: '/dashboard/copy-trading',      icon: Users,     badge: { label: 'New',     color: '#4ade80', bg: 'rgba(74,222,128,0.12)' } },
     ],
