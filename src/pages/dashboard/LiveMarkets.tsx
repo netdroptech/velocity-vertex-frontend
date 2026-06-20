@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Search, Star } from 'lucide-react'
-import { MARKETS, sparkData, fmtUsd } from '@/data/stocks'
+import { MARKETS, sparkData, fmtUsd, colorFor, type Stock } from '@/data/stocks'
+import { api } from '@/lib/api'
 
 const OVERVIEW = [
   { label: 'S&P 500',          value: '5,460.48',  change: '+0.62%',  up: true  },
@@ -38,8 +39,17 @@ export function LiveMarkets() {
   const [tab, setTab] = useState('All')
   const [search, setSearch] = useState('')
   const [starred, setStarred] = useState<string[]>(['AAPL', 'MSFT'])
+  const [apiStocks, setApiStocks] = useState<Stock[] | null>(null)
 
-  const filtered = MARKETS.filter(m => {
+  useEffect(() => {
+    api.get<{ success: boolean; data: any[] }>('/user/market-stocks')
+      .then(r => setApiStocks(r.data.map(s => ({ name: s.name, symbol: s.symbol, price: s.price, change: s.change, color: colorFor(s.symbol) }))))
+      .catch(() => { /* fall back to static */ })
+  }, [])
+
+  const SOURCE = apiStocks && apiStocks.length ? apiStocks : MARKETS
+
+  const filtered = SOURCE.filter(m => {
     if (tab === 'Favourites' && !starred.includes(m.symbol)) return false
     if (tab === 'Top Gainers' && m.change <= 0) return false
     if (tab === 'Top Losers'  && m.change >= 0) return false

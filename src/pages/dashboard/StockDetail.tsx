@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, X, TrendingUp, Wallet, History } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
-import { findStock, statsFor, fmtUsd, changeFor } from '@/data/stocks'
+import { findStock, statsFor, fmtUsd, changeFor, colorFor } from '@/data/stocks'
 
 interface StockInvestment {
   id: string
@@ -23,7 +23,7 @@ export function StockDetail() {
   const { user, refreshUser } = useAuth()
   const balance = user?.balance ?? 0
 
-  const stock = findStock(symbol)
+  const [apiStock, setApiStock] = useState<any | null>(null)
   const [investments, setInvestments] = useState<StockInvestment[]>([])
 
   // Buy modal
@@ -40,6 +40,16 @@ export function StockDetail() {
     } catch { /* ignore */ }
   }, [])
   useEffect(() => { loadInvestments() }, [loadInvestments])
+  useEffect(() => {
+    api.get<{ success: boolean; data: any[] }>('/user/market-stocks')
+      .then(r => { const f = r.data.find(x => x.symbol === symbol?.toUpperCase()); if (f) setApiStock(f) })
+      .catch(() => { /* fall back to static */ })
+  }, [symbol])
+
+  // Prefer admin-managed values from the API, fall back to the static catalogue
+  const stock = apiStock
+    ? { name: apiStock.name, symbol: apiStock.symbol, price: apiStock.price, change: apiStock.change, color: colorFor(apiStock.symbol) }
+    : findStock(symbol)
 
   if (!stock) {
     return (
@@ -50,8 +60,19 @@ export function StockDetail() {
     )
   }
 
-  const s = statsFor(stock.symbol, stock.price)
-  const changePct = changeFor(stock.symbol)
+  const base = statsFor(stock.symbol, stock.price)
+  const s = apiStock ? {
+    open:   apiStock.open   ?? base.open,
+    high:   apiStock.high   ?? base.high,
+    low:    apiStock.low    ?? base.low,
+    wkHigh: apiStock.wkHigh ?? base.wkHigh,
+    wkLow:  apiStock.wkLow  ?? base.wkLow,
+    volume: apiStock.volume ?? base.volume,
+    avgVol: apiStock.avgVol ?? base.avgVol,
+    mktCap: apiStock.mktCap ?? base.mktCap,
+    divYield: apiStock.divYield ?? base.divYield,
+  } : base
+  const changePct = (stock.change ?? changeFor(stock.symbol)) as number
   const changeAbs = (changePct / 100) * stock.price
   const up = changePct >= 0
   const ownedShares = investments.filter(i => i.symbol === stock.symbol).reduce((sum, i) => sum + i.shares, 0)

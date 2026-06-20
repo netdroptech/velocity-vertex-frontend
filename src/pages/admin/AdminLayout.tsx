@@ -6,7 +6,7 @@ import {
   ShieldCheck, Bell, LogOut, Menu, X,
   TrendingUp, FileText, Sliders, AlertTriangle,
   PanelLeftClose, PanelLeftOpen, Building2, Wallet, Copy,
-  Send, Loader2,
+  Send, Loader2, Activity, Zap,
 } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 
@@ -38,6 +38,8 @@ const buildNav = (counts: { totalUsers: number; pendingKYC: number; suspended: n
   { section: 'TRADING', items: [
     { label: 'Copy Traders',       path: '/admin/copy-traders',       icon: Copy },
     { label: 'Investment Plans',   path: '/admin/investment-plans',   icon: TrendingUp },
+    { label: 'Stocks',             path: '/admin/stocks',             icon: Activity },
+    { label: 'Premium Signals',    path: '/admin/signals',            icon: Zap },
   ]},
   { section: 'PLATFORM', items: [
     { label: 'Notifications',    path: '/admin/notifications', icon: Send        },

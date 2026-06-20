@@ -84,7 +84,7 @@ export function PremiumSignals() {
   const { user, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState('All')
-  const [expanded, setExpanded] = useState<number | null>(null)
+  const [expanded, setExpanded] = useState<string | number | null>(null)
 
   // Signals access (paid from balance)
   const [price, setPrice]         = useState(0)
@@ -118,7 +118,39 @@ export function PremiumSignals() {
     }
   }
 
-  const filtered = SIGNALS.filter(s => tab === 'All' || s.status === tab.toLowerCase())
+  // Admin-managed signals from the API (fall back to the static sample set)
+  const [apiSignals, setApiSignals] = useState<any[] | null>(null)
+  const [purchased, setPurchased]   = useState<any[]>([])
+  const [buyTarget, setBuyTarget]   = useState<any | null>(null)
+  const [buyAmt, setBuyAmt]         = useState('')
+  const [buying, setBuying]         = useState(false)
+  const [buyErr, setBuyErr]         = useState('')
+  const [buyDone, setBuyDone]       = useState(false)
+
+  const loadSignals = useCallback(async () => {
+    try { const r = await api.get<{ success: boolean; data: any[] }>('/user/trade-signals'); setApiSignals(r.data) } catch { /* fallback */ }
+  }, [])
+  const loadPurchased = useCallback(async () => {
+    try { const r = await api.get<{ success: boolean; data: any[] }>('/user/trade-signals/purchased'); setPurchased(r.data) } catch { /* ignore */ }
+  }, [])
+  useEffect(() => { loadSignals(); loadPurchased() }, [loadSignals, loadPurchased])
+
+  const SOURCE: any[] = apiSignals ?? SIGNALS
+  const buyAmtNum = Number(buyAmt) || 0
+  const buyInsufficient = buyTarget != null && buyAmtNum > 0 && buyAmtNum > balance
+
+  async function purchaseSignal() {
+    if (!buyTarget) return
+    if (buyAmtNum <= 0) { setBuyErr('Enter an amount.'); return }
+    setBuying(true); setBuyErr('')
+    try {
+      await api.post('/user/trade-signals/purchase', { signalId: buyTarget.id, amount: buyAmtNum })
+      await refreshUser(); await loadPurchased()
+      setBuyDone(true)
+    } catch (e) { setBuyErr(e instanceof Error ? e.message : 'Purchase failed.') } finally { setBuying(false) }
+  }
+
+  const filtered = SOURCE.filter((s: any) => tab === 'All' || s.status === tab.toLowerCase())
 
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto overflow-x-hidden">
@@ -283,10 +315,12 @@ export function PremiumSignals() {
                   )}
 
                   {/* Time */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'hsl(240 5% 45%)', fontSize: 11 }}>
-                    <Clock size={11} />
-                    {sig.time}
-                  </div>
+                  {sig.time && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'hsl(240 5% 45%)', fontSize: 11 }}>
+                      <Clock size={11} />
+                      {sig.time}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -315,10 +349,10 @@ export function PremiumSignals() {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4">
-                    <button style={{ padding: '0.5rem 1.125rem', borderRadius: '0.5rem', background: 'linear-gradient(135deg, #88fc8a 0%, #00ff04 100%)', color: '#050505', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
-                      Copy Trade
+                    <button onClick={e => { e.stopPropagation(); setBuyErr(''); setBuyDone(false); setBuyAmt(''); setBuyTarget(sig) }} style={{ padding: '0.5rem 1.125rem', borderRadius: '0.5rem', background: 'linear-gradient(135deg, #88fc8a 0%, #00ff04 100%)', color: '#050505', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+                      Purchase{sig.price ? ` · $${sig.price}` : ''}
                     </button>
-                    <button style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 80%)', fontSize: 12, cursor: 'pointer' }}>
+                    <button onClick={e => e.stopPropagation()} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 80%)', fontSize: 12, cursor: 'pointer' }}>
                       Set Alert
                     </button>
                   </div>
@@ -329,6 +363,24 @@ export function PremiumSignals() {
         })}
       </div>
 
+      {/* Purchased signals history */}
+      {purchased.length > 0 && (
+        <div style={{ marginTop: 28 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: 'hsl(40 10% 94%)', marginBottom: 12 }}>Your Purchased Signals</h2>
+          <Card>
+            {purchased.map((p, i) => (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '13px 16px', borderBottom: i < purchased.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'hsl(40 6% 88%)' }}>{p.pair} <span style={{ fontSize: 11, fontWeight: 700, color: p.direction === 'BUY' ? '#4ade80' : '#f87171' }}>{p.direction}</span></p>
+                  <p style={{ fontSize: 11, color: 'hsl(240 5% 48%)' }}>{new Date(p.createdAt).toLocaleDateString()}</p>
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: '#4ade80' }}>${p.amount.toLocaleString()}</p>
+              </div>
+            ))}
+          </Card>
+        </div>
+      )}
+
       {/* Disclaimer */}
       <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: 8, padding: '0.875rem 1rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         <Shield size={14} style={{ color: 'hsl(240 5% 45%)', flexShrink: 0, marginTop: 1 }} />
@@ -336,6 +388,53 @@ export function PremiumSignals() {
           Signals are generated by {platformName} AI and are for informational purposes only. Past performance does not guarantee future results. Always apply your own risk management. Cryptocurrency trading involves significant risk of loss.
         </p>
       </div>
+
+      {/* Purchase signal modal */}
+      {buyTarget && (
+        <div onClick={() => !buying && setBuyTarget(null)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(5,2,12,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(440px,100%)', background: 'hsl(260 60% 6%)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: 22 }}>
+            {buyDone ? (
+              <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                  <TrendingUp size={26} style={{ color: '#4ade80' }} />
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 800, color: 'hsl(40 10% 95%)', marginBottom: 6 }}>Signal Purchased</p>
+                <p style={{ fontSize: 13, color: 'hsl(240 5% 60%)', marginBottom: 18 }}>${buyAmtNum.toLocaleString()} was deducted for the {buyTarget.pair} {buyTarget.direction} signal.</p>
+                <button onClick={() => setBuyTarget(null)} style={{ width: '100%', padding: '11px', borderRadius: 10, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Done</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: 'hsl(40 10% 95%)' }}>Purchase {buyTarget.pair} signal</p>
+                  <button onClick={() => setBuyTarget(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(240 5% 55%)' }}><X size={18} /></button>
+                </div>
+                <p style={{ fontSize: 12.5, color: 'hsl(240 5% 60%)', lineHeight: 1.6, marginBottom: 14 }}>
+                  Enter the amount you wish to invest in this {buyTarget.pair} ({buyTarget.direction}) signal and confirm. The amount is deducted from your deposited balance.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'hsl(240 5% 55%)', marginBottom: 12 }}>
+                  <span>Balance: <span style={{ color: '#4ade80', fontWeight: 700 }}>${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></span>
+                  {buyTarget.price ? <span>Suggested: <span style={{ color: 'hsl(40 6% 85%)', fontWeight: 600 }}>${buyTarget.price}</span></span> : null}
+                </div>
+                <input type="number" inputMode="decimal" value={buyAmt} onChange={e => { setBuyAmt(e.target.value); setBuyErr('') }} placeholder="0.00"
+                  style={{ width: '100%', height: 48, padding: '0 14px', borderRadius: 10, fontSize: 18, fontWeight: 700, background: 'rgba(255,255,255,0.04)', border: `1px solid ${buyInsufficient ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'}`, color: 'hsl(40 6% 92%)', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }} />
+                {buyErr && <p style={{ fontSize: 12, color: '#f87171', marginBottom: 12 }}>{buyErr}</p>}
+                {buyInsufficient ? (
+                  <>
+                    <div style={{ padding: '10px 13px', borderRadius: 9, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', marginBottom: 14, fontSize: 12, color: '#f59e0b', lineHeight: 1.5 }}>
+                      Insufficient balance. Top up to purchase this signal.
+                    </div>
+                    <button onClick={() => navigate('/dashboard/deposit')} style={{ width: '100%', padding: '12px', borderRadius: 10, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Go to Deposit</button>
+                  </>
+                ) : (
+                  <button onClick={purchaseSignal} disabled={buying || buyAmtNum <= 0} style={{ width: '100%', padding: '12px', borderRadius: 10, background: buyAmtNum > 0 ? 'linear-gradient(135deg,#16a34a,#15803d)' : 'rgba(255,255,255,0.06)', border: 'none', color: buyAmtNum > 0 ? '#fff' : 'hsl(240 5% 40%)', fontSize: 14, fontWeight: 700, cursor: buying || buyAmtNum <= 0 ? 'default' : 'pointer', opacity: buying ? 0.7 : 1 }}>
+                    {buying ? 'Processing…' : `Confirm Purchase · $${buyAmtNum.toLocaleString()}`}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
