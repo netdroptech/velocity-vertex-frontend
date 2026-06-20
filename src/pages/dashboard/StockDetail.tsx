@@ -109,7 +109,7 @@ export function StockDetail() {
           </div>
 
           <button onClick={() => { setError(''); setDone(false); setAmount(''); setOpen(true) }}
-            style={{ width: '100%', padding: '13px', borderRadius: 10, background: 'linear-gradient(135deg,#fb923c,#f97316)', border: 'none', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 22 }}>
+            style={{ width: '100%', padding: '13px', borderRadius: 10, background: 'linear-gradient(135deg, #88fc8a 0%, #00ff04 100%)', border: 'none', color: '#050505', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 22, boxShadow: '0 4px 20px rgba(136,252,138,0.2)' }}>
             Get Started
           </button>
 
