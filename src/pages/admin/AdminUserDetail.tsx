@@ -29,6 +29,7 @@ interface UserDetail {
   totalWithdrawals: number
   totalProfit:      number
   totalLoss:        number
+  signalStrength?:  number
   createdAt:        string
   lastLoginAt?:     string
   transactions:     Tx[]
@@ -161,6 +162,16 @@ export function AdminUserDetail() {
   const [walletMsg,          setWalletMsg]          = useState('')
   const [walletErr,          setWalletErr]          = useState('')
 
+  // Signal strength (per-user)
+  const [sigStr, setSigStr] = useState<number>(99)
+  const [sigSaving, setSigSaving] = useState(false)
+
+  async function saveSignalStrength(v: number) {
+    const val = Math.max(0, Math.min(100, v))
+    setSigStr(val); setSigSaving(true)
+    try { await adminApi.put(`/admin/users/${id}`, { signalStrength: val }) } catch { /* ignore */ } finally { setSigSaving(false) }
+  }
+
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
     if (!id) return
@@ -170,6 +181,7 @@ export function AdminUserDetail() {
       setUser(res.data)
       setForm(res.data)
       setModalStatus(res.data.status)
+      setSigStr(res.data.signalStrength ?? 99)
     } catch (e: any) {
       setError(e.message ?? 'Failed to load user.')
     } finally {
@@ -552,6 +564,22 @@ export function AdminUserDetail() {
               <a.icon size={13} /> {a.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* ── SIGNAL STRENGTH (per-user) ── */}
+      <div style={{ background: 'hsl(260 60% 5%)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '16px 20px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'hsl(40 10% 94%)' }}>Signal Strength</p>
+            <p style={{ fontSize: 12, color: 'hsl(240 5% 52%)' }}>Shown on this user's dashboard only{sigSaving ? ' · saving…' : ''}</p>
+          </div>
+          <p style={{ fontSize: 22, fontWeight: 800, color: '#4ade80' }}>{sigStr}%</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => saveSignalStrength(sigStr - 1)} style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 85%)', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>−</button>
+          <input type="range" min={0} max={100} value={sigStr} onChange={e => setSigStr(Number(e.target.value))} onMouseUp={e => saveSignalStrength(Number((e.target as HTMLInputElement).value))} onTouchEnd={e => saveSignalStrength(Number((e.target as HTMLInputElement).value))} style={{ flex: 1, accentColor: '#22c55e' }} />
+          <button onClick={() => saveSignalStrength(sigStr + 1)} style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 85%)', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>+</button>
         </div>
       </div>
 
