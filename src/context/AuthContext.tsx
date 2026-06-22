@@ -20,6 +20,7 @@ export interface AuthUser {
   status:      string
   kycStatus:   string
   plan:        string
+  activePlanName?: string | null
   balance:     number
   totalDeposits:    number
   totalWithdrawals: number

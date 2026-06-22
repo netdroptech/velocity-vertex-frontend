@@ -70,6 +70,7 @@ export function InvestmentPlans() {
   const [plans,   setPlans]   = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const balance = user?.balance ?? 0
+  const currentPlan = user?.activePlanName ?? null
 
   // Invest modal
   const [investPlan, setInvestPlan] = useState<Plan | null>(null)
@@ -146,14 +147,18 @@ export function InvestmentPlans() {
           <TrendingUpIcon size={18} style={{ color: '#4ade80' }} />
           <div>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'hsl(40 6% 92%)' }}>
-              {user?.kycStatus === 'APPROVED'
-                ? 'Select a plan below to start investing'
-                : 'No active plan — verify your identity to start investing'}
+              {currentPlan
+                ? `Current plan: ${currentPlan}`
+                : user?.kycStatus === 'APPROVED'
+                  ? 'Select a plan below to start investing'
+                  : 'No active plan — verify your identity to start investing'}
             </p>
             <p style={{ fontSize: 12, color: 'hsl(240 5% 50%)' }}>
-              {user?.kycStatus === 'APPROVED'
-                ? 'Your account is verified and ready to invest'
-                : 'Complete KYC verification to unlock all investment plans'}
+              {currentPlan
+                ? 'Choose a higher plan to upgrade — the amount is deducted from your balance'
+                : user?.kycStatus === 'APPROVED'
+                  ? 'Your account is verified and ready to invest'
+                  : 'Complete KYC verification to unlock all investment plans'}
             </p>
           </div>
         </div>
@@ -278,7 +283,7 @@ export function InvestmentPlans() {
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                   >
-                    Start Investing
+                    {currentPlan ? (plan.name === currentPlan ? 'Add Funds' : 'Upgrade Plan') : 'Start Investing'}
                   </button>
                 </div>
               )
@@ -303,7 +308,7 @@ export function InvestmentPlans() {
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <p style={{ fontSize: 16, fontWeight: 800, color: 'hsl(40 10% 95%)' }}>Invest in {investPlan.name}</p>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: 'hsl(40 10% 95%)' }}>{currentPlan && currentPlan !== investPlan.name ? `Upgrade to ${investPlan.name}` : `Invest in ${investPlan.name}`}</p>
                   <button onClick={() => setInvestPlan(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(240 5% 55%)', fontSize: 18 }}>✕</button>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'hsl(240 5% 55%)', marginBottom: 14 }}>
