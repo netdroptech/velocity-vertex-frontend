@@ -22,6 +22,9 @@ interface UserStats {
   status?:          string
   activePlanName?:  string | null
   activePlanRoi?:   number | null
+  signalStrength?:  number
+  activeSignalAmount?: number
+  activeSignalPair?:   string | null
 }
 
 interface Transaction {
@@ -404,6 +407,32 @@ export function DashboardHome() {
         {/* Bonus */}
         <StatCard label="Bonus" value={fmt(bonus)} sub="All time" icon={Gift} loading={statsLoading} />
       </div>
+
+      {/* ── Signal Strength widget ── */}
+      {(() => {
+        const strength = stats?.signalStrength ?? 99
+        const sigAmount = stats?.activeSignalAmount ?? 0
+        const sigPair   = stats?.activeSignalPair ?? null
+        const segments = 20
+        const filled = Math.round((strength / 100) * segments)
+        return (
+          <Card style={{ padding: '1.25rem 1.5rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'hsl(240 5% 60%)' }}>Signal strength</p>
+              <p style={{ fontSize: 16, fontWeight: 800, color: '#4ade80' }}>{strength}%</p>
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+              {Array.from({ length: segments }).map((_, i) => (
+                <div key={i} style={{ flex: 1, height: 22, borderRadius: 4, background: i < filled ? '#22c55e' : 'rgba(255,255,255,0.06)', transition: 'background 0.2s' }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: 'hsl(240 5% 55%)' }}>{sigPair ? `Active: ${sigPair}` : 'No active signal'}</p>
+              <p style={{ fontSize: 18, fontWeight: 800, color: sigAmount > 0 ? '#4ade80' : '#fb923c' }}>US${sigAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </div>
+          </Card>
+        )
+      })()}
 
       {/* ── Identity Verification banner ── */}
       {kycStatus !== 'APPROVED' && (

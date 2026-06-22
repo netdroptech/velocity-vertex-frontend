@@ -21,6 +21,8 @@ export function AdminSignals() {
   const [editing, setEditing] = useState<any | null>(null)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
+  const [strength, setStrength] = useState(99)
+  const [strSaving, setStrSaving] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -30,6 +32,17 @@ export function AdminSignals() {
     } catch { /* ignore */ } finally { setLoading(false) }
   }, [])
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    adminApi.get<{ success: boolean; data: Record<string, string> }>('/admin/settings')
+      .then(r => setStrength(Math.max(0, Math.min(100, Number(r.data.signal_strength ?? 99)))))
+      .catch(() => {})
+  }, [])
+
+  async function saveStrength(v: number) {
+    const val = Math.max(0, Math.min(100, v))
+    setStrength(val); setStrSaving(true)
+    try { await adminApi.patch('/admin/settings/signal_strength', { value: String(val) }) } catch {} finally { setStrSaving(false) }
+  }
 
   async function save() {
     setSaving(true); setErr('')
@@ -57,6 +70,22 @@ export function AdminSignals() {
         <button onClick={() => setEditing({ ...BLANK })} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 9, background: 'linear-gradient(135deg,#16a34a,#15803d)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
           <Plus size={15} /> Add Signal
         </button>
+      </div>
+
+      {/* Signal strength control (shown on the user dashboard) */}
+      <div style={{ background: 'hsl(260 60% 5%)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '16px 20px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'hsl(40 10% 94%)' }}>Signal Strength</p>
+            <p style={{ fontSize: 12, color: 'hsl(240 5% 52%)' }}>Shown on every user's dashboard{strSaving ? ' · saving…' : ''}</p>
+          </div>
+          <p style={{ fontSize: 22, fontWeight: 800, color: '#4ade80' }}>{strength}%</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => saveStrength(strength - 1)} style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 85%)', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>−</button>
+          <input type="range" min={0} max={100} value={strength} onChange={e => setStrength(Number(e.target.value))} onMouseUp={e => saveStrength(Number((e.target as HTMLInputElement).value))} onTouchEnd={e => saveStrength(Number((e.target as HTMLInputElement).value))} style={{ flex: 1, accentColor: '#22c55e' }} />
+          <button onClick={() => saveStrength(strength + 1)} style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'hsl(40 6% 85%)', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>+</button>
+        </div>
       </div>
 
       {loading ? (
