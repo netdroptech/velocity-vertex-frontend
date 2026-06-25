@@ -40,6 +40,7 @@ const buildNav = (counts: { totalUsers: number; pendingKYC: number; suspended: n
     { label: 'Investment Plans',   path: '/admin/investment-plans',   icon: TrendingUp },
     { label: 'Stocks',             path: '/admin/stocks',             icon: Activity },
     { label: 'Premium Signals',    path: '/admin/signals',            icon: Zap },
+    { label: 'Signal Confidence',  path: '/admin/signal-confidence',  icon: Activity },
   ]},
   { section: 'PLATFORM', items: [
     { label: 'Notifications',    path: '/admin/notifications', icon: Send        },
